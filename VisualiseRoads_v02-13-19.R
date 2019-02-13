@@ -16,7 +16,7 @@ df <- read.csv("data/Roads_InfoAboutEachLRP.csv")
 df_split <- split(df, df$road)
 
 # Modify here the road name! 
-list_SplitedRoad <- select(df_split$N6, lon, lat)
+list_SplitedRoad <- select(df_split$N501, lon, lat)
 
 # Plot the road with paths linked between points
 p <- ggplot(list_SplitedRoad, aes(lon, lat)) +
@@ -37,6 +37,6 @@ list_SplitedRoad$outlier <- cookd
 # Plot the outliers on the graph
 list_Outliers <- filter(list_SplitedRoad, outlier == 1)
 
-p <- p + geom_point(data = list_Outliers, aes(lon, lat), colour = "red", shape = 2)
+p <- p + geom_point(data = list_Outliers, aes(lon, lat), colour = "red", shape = 2, size = 2.5)
 
 ggplotly(p)
