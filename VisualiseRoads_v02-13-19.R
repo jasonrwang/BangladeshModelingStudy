@@ -16,7 +16,7 @@ df <- read.csv("data/Roads_InfoAboutEachLRP.csv")
 df_split <- split(df, df$road)
 
 # Modify here the road name! 
-list_SplitedRoad <- select(df_split$N501, lon, lat)
+list_SplitedRoad <- select(df_split$N6, lon, lat)
 
 # Plot the road with paths linked between points
 p <- ggplot(list_SplitedRoad, aes(lon, lat)) +
@@ -27,9 +27,10 @@ p <- ggplot(list_SplitedRoad, aes(lon, lat)) +
 ggplotly(p)
 
 # Calculate the Cooks distance
-cookd <- cooks.distance(aov(list_SplitedRoad$lat ~ list_SplitedRoad$lon))
-cookd <- cookd > 0.05
+cookd <- cooks.distance(lm(list_SplitedRoad$lat ~ list_SplitedRoad$lon))
 plot(cookd)
+
+cookd <- cookd > 0.05
 
 # save the result to the dataframe
 list_SplitedRoad$outlier <- cookd
