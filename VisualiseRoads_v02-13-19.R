@@ -7,7 +7,6 @@ setwd("D:/EPA/EPA Semester-1.3/EPA1351 Advanced Discrete Simulation/Assignment 1
 library(dplyr)
 library(ggplot2)
 library(plotly)
-library(googleVis)
 
 # Load data
 df <- read.csv("Roads_InfoAboutEachLRP.csv")
