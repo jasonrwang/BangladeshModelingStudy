@@ -37,6 +37,3 @@ rsconnect/
 
 # macOS junk
 .DS_Store
-
-# Actual data files, since they're too large!
-data/*
