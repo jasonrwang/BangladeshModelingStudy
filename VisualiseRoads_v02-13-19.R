@@ -1,4 +1,4 @@
-# Data Cleaning for Road Data
+### Data Cleaning for Road Data
 
 # Load library
 library(dplyr)
@@ -26,14 +26,31 @@ p <- ggplot(list_SplitedRoad, aes(lon, lat)) +
 
 ggplotly(p)
 
+## Below are different methods to finding outliers
+
 # Calculate the Cooks distance
 cookd <- cooks.distance(lm(list_SplitedRoad$lat ~ list_SplitedRoad$lon))
 plot(cookd)
 
 cookd <- cookd > 0.05
 
+# Summary statistics of deltas
+
+# First, find the change between datapoints
+list_SplitedRoad <- list_SplitedRoad %>%
+  mutate(deltaLon = ifelse(row_number() == dim(list_SplitedRoad)[1],0,abs(lead(lon) - lon))) %>% # Find abs change in lon
+  mutate(deltaLon = ifelse(is.na(deltaLon), 0, deltaLon)) %>%
+  mutate(deltaLat = ifelse(row_number() == dim(list_SplitedRoad)[1],0,abs(lead(lat) - lat))) %>% # Find abs change in lon
+  mutate(deltaLat = ifelse(is.na(deltaLat), 0, deltaLat))
+
+deltaLat <- quantile(list_SplitedRoad$deltaLat, c(.95))
+deltaLon <- quantile(list_SplitedRoad$deltaLon, c(.95))
+
+# We only care about points whose absolute delta is larger than normal
+deltOut <- list_SplitedRoad$deltaLon > deltaLon | list_SplitedRoad$deltaLat > deltaLat
+
 # save the result to the dataframe
-list_SplitedRoad$outlier <- cookd
+list_SplitedRoad$outlier <- cookd | deltOut
 
 # Plot the outliers on the graph
 list_Outliers <- filter(list_SplitedRoad, outlier == 1)
