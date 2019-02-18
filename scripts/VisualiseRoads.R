@@ -21,9 +21,9 @@ ggplotly(p)
 df <- df %>% group_by(road) %>%
   mutate(
     cookd = cooks.distance(lm(lat ~ lon)), # Also find each datapoint's Cook's Distance within each group
-    deltaLon = ifelse(row_number() == dim(list_SplitedRoad)[1],0,abs(lead(lon) - lon)), # Find abs change in lon
+    deltaLon = ifelse(row_number() == 0,0,abs(lead(lon) - lon)), # Find abs change in lon (ignoring first entry)
     deltaLon = ifelse(is.na(deltaLon), 0, deltaLon),
-    deltaLat = ifelse(row_number() == dim(list_SplitedRoad)[1],0,abs(lead(lat) - lat)), # Find abs change in lon
+    deltaLat = ifelse(row_number() == 0,0,abs(lead(lat) - lat)), # Find abs change in lon
     deltaLat = ifelse(is.na(deltaLat), 0, deltaLat)    
   )
 
