@@ -2,29 +2,44 @@
 
 ## Different Outlier Detection Methods
 
+# Shortest Distance?
+
 # Cook's Distance
 
 RoadCooksDis_LatLon <- function(df) {
     df <- df %>% mutate(
         cookd = cooks.distance(lm(lat ~ lon)), # Also find each datapoint's Cook's Distance within each group
+        outlier = cookd > 0.05
     )
     return(df)
 }
 
 # Group the dataset by each road (e.g. N6) and find the change in lon and lat (assumes data is ordered)
 
-RoadDeltaLon <- function(df) {
+RoadDeltaLon <- function(df, q = 0.95) {
     df <- df %>% mutate(
         deltaLon = ifelse(row_number() == 0,0,abs(lead(lon) - lon)), # Find abs change in lon (ignoring first entry)
         deltaLon = ifelse(is.na(deltaLon), 0, deltaLon),
+        quantLimitLon = quantile(deltaLon, q),
+        #outlier = deltaLon > quantLimitLon
+    )
+    quantLimitLon_All <- quantile(df$deltaLon,q)
+    df <- df %>% mutate(
+        outlier = deltaLon > quantLimitLon_All
     )
     return(df)
 }
 
-RoadDeltaLat <- function(df) {
+RoadDeltaLat <- function(df, q = 0.95) {
     df <- df %>% mutate(
         deltaLat = ifelse(row_number() == 0,0,abs(lead(lat) - lat)), # Find abs change in lon
-        deltaLat = ifelse(is.na(deltaLat), 0, deltaLat) 
+        deltaLat = ifelse(is.na(deltaLat), 0, deltaLat),
+        quantLimitLat = quantile(deltaLat, q),
+        #outlier = deltaLat > quantLimitLat
+    )
+    quantLimitLat_All <- quantile(df$deltaLat,q)
+    df <- df %>% mutate(
+        outlier = deltaLat > quantLimitLat_All
     )
     return(df)
 }
@@ -45,8 +60,7 @@ VisualizeRoads <- function( df, roads = c('N6'), outlier = FALSE ) {
 
     if (outlier) {
        list_Outliers <- filter(df, outlier == TRUE, road %in% roads)
-
-    p <- p + geom_point(data = list_Outliers, aes(lon, lat), colour = "green", shape = 2, size = 5)
+       p <- p + geom_point(data = list_Outliers, aes(lon, lat), colour = "green", shape = 2, size = 5)
     }
 
     ggplotly(p)
