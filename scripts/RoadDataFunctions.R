@@ -20,11 +20,11 @@ RoadDeltaLon <- function(df, q = 0.95) {
         deltaLon = ifelse(row_number() == 0,0,abs(lead(lon) - lon)), # Find abs change in lon (ignoring first entry)
         deltaLon = ifelse(is.na(deltaLon), 0, deltaLon),
         quantLimitLon = quantile(deltaLon, q),
-        #outlier = deltaLon > quantLimitLon
+        # dLonOut = deltaLon > quantLimitLon
     )
     quantLimitLon_All <- quantile(df$deltaLon,q)
     df <- df %>% mutate(
-        outlier = deltaLon > quantLimitLon_All
+        dLonOut = deltaLon > quantLimitLon_All
     )
     return(df)
 }
@@ -34,11 +34,11 @@ RoadDeltaLat <- function(df, q = 0.95) {
         deltaLat = ifelse(row_number() == 0,0,abs(lead(lat) - lat)), # Find abs change in lon
         deltaLat = ifelse(is.na(deltaLat), 0, deltaLat),
         quantLimitLat = quantile(deltaLat, q),
-        # outlier = deltaLat > quantLimitLat
+        # dLatOut = deltaLat > quantLimitLat
     )
     quantLimitLat_All <- quantile(df$deltaLat,q)
     df <- df %>% mutate(
-        outlier = deltaLat > quantLimitLat_All
+        dLatOut = deltaLat > quantLimitLat_All
     )
     return(df)
 }
@@ -65,6 +65,11 @@ ByChainage <- function(df) {
     # Remove the "chainage2" column
     df <- df[1:7]
     return(df)
+}
+
+EndpointSeqDetect <- function() {
+
+    
 }
 
 # ==============================
@@ -111,7 +116,7 @@ fun_pt <- function(p, q, r){
 }
 
 # Create a function to run through each road
-fun_road <- function(df){
+RoadDiffDistClean <- function(df){
     # df is the dataset of (each) road
     #print(df)  # @Unhash for debugging@
 
@@ -133,14 +138,14 @@ fun_road <- function(df){
             
             # Compare the two distances
             if(abs(d1 - d2) > 3){
-            # The difference is beyond limit, i.e., the data point is an outlier
-            cat(c(as.character(df$road[nn]), "\tn = ", nn, "\t p1 chainage @ ", df$chainage[nn], "\n",
-                    "p1: ", df$lon[nn], "\t", df$lat[nn], "\n", 
-                    "p2: ", df$lon[nn-1], "\t", df$lat[nn-1], "\n",
-                    "d1 = ", d1, ", d2 = ", d2, "\n"), file = "CleaningRecord.txt", append = TRUE)
-            
-            # Fix the data point
-            df[nn, ] <- fun_pt(df[nn, ], df[nn-1, ], df[nn+1, ])
+                # The difference is beyond limit, i.e., the data point is an outlier
+                cat(c(as.character(df$road[nn]), "\tn = ", nn, "\t p1 chainage @ ", df$chainage[nn], "\n",
+                        "p1: ", df$lon[nn], "\t", df$lat[nn], "\n", 
+                        "p2: ", df$lon[nn-1], "\t", df$lat[nn-1], "\n",
+                        "d1 = ", d1, ", d2 = ", d2, "\n"), file = "CleaningRecord.txt", append = TRUE)
+                
+                # Fix the data point
+                df[nn, ] <- fun_pt(df[nn, ], df[nn-1, ], df[nn+1, ])
             }
         }
     }

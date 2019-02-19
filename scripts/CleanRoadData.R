@@ -1,10 +1,11 @@
-######################################## 
+##########################################
 #
 #   Overall Function to Clean Road Data
 #
 #   This code:
 #     1. Loads the raw data
 #     2. Group by road
+#     3. Runs initial chainage check
 #     3. Delta Distance Method
 #       a. Checks for the change in distance between all points by coordinates and by chainage
 #       b. Checks the difference between these two methods and identifies outliers
@@ -20,6 +21,8 @@
 #
 #   To-do
 #     a. Automatically fix sequential starts (needs to be at the beginning)
+#     b. Clean points by delta distance method
+#
 ########################################
 
 # ===================================
@@ -39,6 +42,8 @@ source('scripts/RoadDataFunctions.R')
 df <- read.csv('data/Roads_InfoAboutEachLRP.csv',
   stringsAsFactors = FALSE ) %>% group_by(road)
 
+# min(df[which(df$road == "Z4606"),]$lon)
+
 # Visually inspect roads
 VisualizeRoads(df, c('N2'), 'Initial Inspection')
 
@@ -47,44 +52,41 @@ VisualizeRoads(df, c('N2'), 'Initial Inspection')
 #   and cleaning techniques
 # ==================================
 
-#  1. Fix chainage reversal/duplicates problem 
-df1 <- ByChainage(df)
-VisualizeRoads(df1, c('N602'),'Before Cleaning')
-
-# Detection methods
-q <- 0.99 # The quantile value we want to use
-# Cleans by Cook's Distance without splitting by road
-df <- df %>% RoadCooksDis_LatLon() %>% CooksDistanceClean()
-df <- RoadDeltaLon(df, q)
-df <- RoadDeltaLat(df, q)
-
-VisualizeRoads(df, c('N2'), 'Outliers', outlier = TRUE)
-
 # Create a new empty log for cleaning
 cat("CLEANING RECORD STARTS\n\n\n", file = "CleaningRecord.txt", append = FALSE)
 
+# 1. Fix chainage reversal/duplicates problem 
+df <- ByChainage(df)
+VisualizeRoads(df, c('N6'),'Before Cleaning')
+
+# Changed outlier flagging logic to be by-type and not a general outlier category
+# VisualizeRoads(df, c('N2'), 'Outliers', outlier = TRUE)
 
 # =========================
 #  Data cleaning for Roads 
 # =========================
 
 # Split the data frame by road
-df2 <- split(df1, df1$road)
+df1 <- split(df, df$road)
 
 # Clean the dataset
-df3 <- lapply(df2, fun_road)
+df1 <- lapply(df1, RoadDiffDistClean)
+
+# Cook's Distance Method
+df1 <- df1 %>% RoadCooksDis_LatLon() %>% CooksDistanceClean() # Now cleans by Cook's Distance without splitting by road
+
+q <- 0.99 # The quantile value we want to use
+df1 <- RoadDeltaLon(df1, q)
+df1 <- RoadDeltaLat(df1, q)
 
 # Clean the dataset
 df4 <- lapply(df3, fun_endpt)
 
-# Clean the dataset
-df4 <- lapply(df4, fun_cooksD)
-
-# Plot a road to check the results
-VisualizeRoads(df3, c('N102'),'After Cleaning')
-
 # Reshape the dataset
 df5 <- bind_rows(df4)
+
+# Plot a road to check the results
+VisualizeRoads(df5, c('N6'),'After Cleaning')
 
 # =====================
 #  Write data to file 
