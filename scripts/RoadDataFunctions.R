@@ -67,11 +67,6 @@ ByChainage <- function(df) {
     return(df)
 }
 
-EndpointSeqDetect <- function() {
-
-    
-}
-
 # ==============================
 #   Different Cleaning Methods
 # ==============================
