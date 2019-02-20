@@ -45,7 +45,7 @@ df <- read.csv('data/Roads_InfoAboutEachLRP.csv',
 # min(df[which(df$road == "Z4606"),]$lon)
 
 # Visually inspect roads
-VisualizeRoads(df, c('N2'), 'Initial Inspection')
+VisualizeRoads(df, c('N6'), 'Initial Inspection')
 
 # ==================================
 #   Run different outlier detection
@@ -57,7 +57,7 @@ cat("CLEANING RECORD STARTS\n\n\n", file = "CleaningRecord.txt", append = FALSE)
 
 # 1. Fix chainage reversal/duplicates problem 
 df <- ByChainage(df)
-VisualizeRoads(df, c('N6'),'Before Cleaning')
+VisualizeRoads(df, c('N6'),'After ByChainage')
 
 # Changed outlier flagging logic to be by-type and not a general outlier category
 # VisualizeRoads(df, c('N2'), 'Outliers', outlier = TRUE)
@@ -72,21 +72,26 @@ df1 <- split(df, df$road)
 # Clean the dataset
 df1 <- lapply(df1, RoadDiffDistClean)
 
-# Cook's Distance Method
-df1 <- df1 %>% RoadCooksDis_LatLon() %>% CooksDistanceClean() # Now cleans by Cook's Distance without splitting by road
-
-q <- 0.99 # The quantile value we want to use
-df1 <- RoadDeltaLon(df1, q)
-df1 <- RoadDeltaLat(df1, q)
-
 # Clean the dataset
-df4 <- lapply(df3, fun_endpt)
+df1 <- lapply(df1, fun_endpt)
 
 # Reshape the dataset
-df5 <- bind_rows(df4)
+df1<- bind_rows(df1)
+
+# Clean using RoadLargeDeltaClean
+q <- 0.995 # The quantile value we want to use
+df2 <- RoadDeltaLon(df1, q)
+df3 <- RoadDeltaLat(df2, q)
+df4 <- RoadLargeDeltaClean(df3)
+
+# Cook's Distance Method - Remove
+df1 <- df1 %>% RoadCooksDis_LatLon() %>% CooksDistanceClean() # Now cleans by Cook's Distance without splitting by road
 
 # Plot a road to check the results
-VisualizeRoads(df5, c('N6'),'After Cleaning')
+VisualizeRoads(df4, c('N6'),'After Cleaning', TRUE)
+
+df5 <- df4 %>% RoadDeltaLon(q) %>% RoadDeltaLat(q) %>% RoadLargeDeltaClean()
+VisualizeRoads(df5, c('N6'),'After Cleaning', TRUE)
 
 # =====================
 #  Write data to file 

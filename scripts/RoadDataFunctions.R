@@ -201,6 +201,40 @@ fun_endpt <- function(df) {
   return(df)
 }
 
+RoadLargeDeltaClean <- function(df) {
+    # Takes in df that has group_by(road)
+
+    # Clean datapoints if there is a large delta distance
+    # Works similarly to the `fun_pt` function
+    # `fun_pt` should have cleaned up sequences that are offset
+    # This code should simply clean up any small singular peaks in the data
+    # It also assumes the end points have been dealt with!
+
+    ## Singular peaks always cause a subsequent false positive, so we to isolate them
+    # Number all of the outliers (still grouped by road)
+    df1 <- df %>% filter(dLatOut | dLonOut) %>% mutate(
+        outSeq = row_number()
+    ) %>% group_by(road)
+
+    df <- full_join(df1,df) %>% arrange(road, chainage) # Re-sort to original order
+
+    # Now, adjust every other outlier
+    # There are three cases to consider
+    df <- df %>% mutate(
+        # Both lat and lon are wrong
+        lat = ifelse(dLatOut & dLonOut & as.logical(!outSeq%%2), (lag(lat)+lead(lat))/2, lat),
+        lon = ifelse(dLatOut & dLonOut & as.logical(!outSeq%%2), (lag(lon)+lead(lon))/2, lon),
+        # Just the Lat is wrong
+        lat = ifelse(dLatOut & as.logical(!outSeq%%2), (lag(lat)+lead(lat))/2, lat),
+        # Just the Lon is wrong
+        lon = ifelse(dLonOut & as.logical(!outSeq%%2), (lag(lon)+lead(lon))/2, lon),
+    )
+    # There should be some sort of logging added to this too!
+    
+    # Return the cleaned road dataset
+    return(df)
+}
+
 CooksDistanceClean <- function(df) {
     CooksRows <- which(df$cookd) # Find outlier row numbers
     for (i in CooksRows){
@@ -215,6 +249,7 @@ CooksDistanceClean <- function(df) {
 
 VisualizeRoads <- function( df, roads = c('N6'),
         title = 'INSERT TITLE',outlier = FALSE ) {
+
     # Plot the road with paths linked between points
     roads  # Plot selected roads
     p <- ggplot(filter(df, road %in% roads), aes(lon, lat)) +
@@ -223,6 +258,9 @@ VisualizeRoads <- function( df, roads = c('N6'),
     ggtitle(title)
 
     if (outlier) {
+        df <- df %>% mutate(
+            outlier = dLonOut | dLatOut #| cookd
+        )
        list_Outliers <- filter(df, outlier == TRUE, road %in% roads)
        p <- p + geom_point(data = list_Outliers, aes(lon, lat), colour = "green", shape = 2, size = 5)
     }
