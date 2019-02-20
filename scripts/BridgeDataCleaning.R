@@ -6,9 +6,8 @@ library(plotly)
 library(xlsx)
 
 # Load datasets
-df_road <- read.csv("Roads_InfoAboutEachLRP.csv")
-df1 <- read.csv("BMMS_overview.csv", header = TRUE)
-colnames(df1)[1] <- "road"  # Fix the column name
+df_road <-read.csv("Roads_InfoAboutEachLRP.csv")
+df1 <- readxl::read_excel("./data/BMMS_overview.xlsx")
 
 # Inspect the dataframe df1
 #any(is.na(df1$lat))        # lat: NA value presents
