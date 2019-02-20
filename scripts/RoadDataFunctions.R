@@ -72,7 +72,7 @@ ByChainage <- function(df) {
 # ==============================
 
 # Modify by +1/-1 (data misentry) OR interpolate (noise)
-fun_pt <- function(p, q, r){
+fun_pt <- function(p, q, r, l){
     ## p,q,r are vectors of all data points we want to fix
     # p is a specific data point
     # q precedes p and r follows p
@@ -81,11 +81,25 @@ fun_pt <- function(p, q, r){
     ## First check for outliers based on data misentry (e.g. 23 instead of 22)
     # Column 4 and 5 are lon/lat
     if(abs(as.double(p[4]) - as.double(q[4])) > 0.5){
+      if(as.integer(p[4]) != as.integer(q[4])) {
+        # Fix the +/- 1 issue
         p[4] <- p[4] - as.integer(p[4]) + as.integer(q[4])
         cat(c("Fixed to:\n p1: ", as.double(p[5]), "\t", as.double(p[4]), "\n\n"), file = "CleaningRecord.txt", append = TRUE)
+      } else {
+        # The difference between the lon < 1, extrapolate the value
+        p[4] <- q[4] + as.double(q[4]) - as.double(l[4])
+        cat(c("Fixed to (extrapolate):\n p1: ", as.double(p[5]), "\t", as.double(p[4]), "\n\n"), file = "CleaningRecord.txt", append = TRUE)
+      }
     } else if (abs(as.double(p[5]) - as.double(q[5])) > 0.5) {
+      if(as.integer(p[5]) != as.integer(q[5])) {
+        # Fix the +/- 1 issue
         p[5] <- p[5] - as.integer(p[5]) + as.integer(q[5])
         cat(c("Fixed to:\n p1: ", as.double(p[5]), "\t", as.double(p[4]), "\n\n"), file = "CleaningRecord.txt", append = TRUE)
+      } else {
+        # The difference between the lat < 1, extrapolate the value
+        p[5] <- q[5] + as.double(q[5]) - as.double(l[5])
+        cat(c("Fixed to (extrapolate):\n p1: ", as.double(p[5]), "\t", as.double(p[4]), "\n\n"), file = "CleaningRecord.txt", append = TRUE)
+      }
     } else {
         ## Then deal with the rest of the outliers as noise
 
@@ -140,7 +154,7 @@ RoadDiffDistClean <- function(df){
                         "d1 = ", d1, ", d2 = ", d2, "\n"), file = "CleaningRecord.txt", append = TRUE)
                 
                 # Fix the data point
-                df[nn, ] <- fun_pt(df[nn, ], df[nn-1, ], df[nn+1, ])
+                df[nn, ] <- fun_pt(df[nn, ], df[nn-1, ], df[nn+1, ], df[nn-2, ])
             }
         }
     }
@@ -153,7 +167,7 @@ fun_endpt <- function(df) {
   # df is the dataset of (each) road
   
   # If the road contains only one data point, then skip
-  if( nrow(df) <= 2 ){
+  if( nrow(df) <= 3 ){
     # Skip the road dataset
   } else {
     # Start point outliers
