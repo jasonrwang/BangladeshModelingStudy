@@ -16,9 +16,9 @@ dfBridge <- read.csv('data/BMMS_overview.csv',
 
 # Remove unnecessary columns
 dfBridge <- dfBridge %>% select(c(
-    'LRPName','chainage','condition','lat','lon'
+    'LRPName','chainage','condition','lat','lon','length'
 ))
-names(dfBridge) <- c('lrp','chainage','condition','lat','lon')
+names(dfBridge) <- c('lrp','chainage','condition','lat','lon','length')
 
 # There are some duplicate entries for bridges by condition.
 # Take a conservative approach and assume the worse condition.
