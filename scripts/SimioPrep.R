@@ -1,10 +1,5 @@
 library(dplyr)
 library(tidyr)
-library(ggplot2)
-library(plotly)
-library(geosphere)
-
-source('scripts/RoadDataFunctions.R')
 
 ## Load road data
 dfRoad <- read.csv('data/_roads3.csv',
@@ -27,18 +22,30 @@ names(dfBridge) <- c('lrp','chainage','condition','lat','lon')
 
 # There are some duplicate entries for bridges by condition.
 # Take a conservative approach and assume the worse condition.
-dfBridge <- dfBridge %>% group_by(lrp)
-####### Logic to remove the 'less strict' condition
+
+dfBridge <- dfBridge %>% group_by(lrp) %>% top_n(1,condition)
+# There are still some duplicates left here.. and they're not all the same.
+# Let's naively sample one (FOR NOW)
+dfBridge <- dfBridge %>% sample_n(1) %>% ungroup()# Should end up with 639
+# dfBridge %>% top_n(1,condition) %>% filter(n() > 1)
 
 # Remove duplicates and make a column for the destination node (lag by one)
-df <- bind_rows(dfRoad,dfBridge) # This may be a flawed join approach
-df <- df %>% #arrange(chainage) %>%
-    inner_join(dfRoad,dfBridge,by='lrp',suffix = c('.road','.bridge')) %>%
+df <- full_join(dfRoad,dfBridge,by='lrp',suffix = c('.road','.bridge')) %>%
+    mutate(
+        chainage = ifelse(is.na(chainage.road),chainage.bridge,chainage.road),
+        lat = ifelse(is.na(lat.road),lat.bridge,lat.road),
+        lon = ifelse(is.na(lon.road),lon.bridge,lon.road)
+        ) %>%
+    #filter(-chainage)
+    arrange(chainage) %>%
     mutate(destination = lead(lrp))
 
-df %>% filter(is.na(road.road))
 
-write.csv(df, file = 'data/combinedRoads.csv')
+# Note there are coordinate differences
+filter(dfRoad, lrp == 'LRP008b')$lon
+filter(dfBridge, lrp == 'LRP008b')$lon
+
+write.csv(df, file = 'data/combinedRoadsBridges.csv')
 
 
 #### Other
@@ -61,6 +68,3 @@ write.csv(df, file = 'data/combinedRoads.csv')
 #     )
 # )
 
-#
-
-VisualizeRoads(df, 'N1')
