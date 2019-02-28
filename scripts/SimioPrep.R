@@ -34,7 +34,8 @@ df <- full_join(dfRoad,dfBridge,by='lrp',suffix = c('.road','.bridge')) %>%
     mutate(
         chainage = ifelse(is.na(chainage.road),chainage.bridge,chainage.road),
         lat = ifelse(is.na(lat.road),lat.bridge,lat.road),
-        lon = ifelse(is.na(lon.road),lon.bridge,lon.road)
+        lon = ifelse(is.na(lon.road),lon.bridge,lon.road),
+        length = ifelse(is.na(length),0,length)
         ) %>%
     #filter(-chainage)
     arrange(chainage) %>%
