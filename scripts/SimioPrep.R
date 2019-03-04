@@ -42,7 +42,7 @@ colnames(dfBridge) <- colnames(dfRoad) # align the column names
 dfMerger <- bind_rows(dfRoad, dfBridge) %>%
   arrange(chainage)
 
-# Drop the duplicate rows by their lrp name
+## Drop the duplicate rows by their lrp name & chainage
 dfMergerX <- dfMerger %>% group_by(lrp) %>% group_by(chainage) %>% 
   # Keep the bridge which is in the best condition, or
   # Keep the bridge and discard the road
