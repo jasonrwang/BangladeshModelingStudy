@@ -1,71 +1,76 @@
+## The purpose of the R script is to 
+##   create a dataset of combined bridges and roads for N1
+##   to model trucks travelling from Chittagong to Dhaka in Simio
+## 
+## The finalised data structure will be
+##   road / chainage / lrp / lat / lon / name //
+##   condition / type / length / IsBridge / destination
+
+## Load library
 library(dplyr)
 library(tidyr)
 
 ## Load road data
-dfRoad <- read.csv('data/_roads3.csv',
-  stringsAsFactors = FALSE ) %>% filter(road == 'N1') %>%
-  select(-name,-gap)
-
-# Save filtered data into its own file for speed in Simio
-# write.csv(df1, file = 'data/N1roads.csv')
+dfRoad <- read.csv('data/_roads3.csv', stringsAsFactors = FALSE ) %>% 
+  # Select subeset road rows on N1
+  filter(road == 'N1') %>%
+  # Remove unnecessary columns
+  select(-gap) %>%
+  # Assign road to column [condition]
+  mutate(condition = "Road") %>%
+  # Assign zero to column [length]
+  mutate(length = 0) %>%
+  # Assign FALSE to column [IsBridge]
+  mutate(IsBridge = FALSE)
 
 ## Load bridge data
+dfBridge <- read.csv('data/BMMS_overview.csv', stringsAsFactors = FALSE ) %>% 
+  # Select subset bridges rows on N1
+  filter(ï..road == 'N1') %>%
+  # Drop the bridges that contain NAs
+  drop_na() %>%
+  # Sort the bridge dataset by LRPName and then chainage
+  arrange(LRPName) %>% arrange(chainage) %>%
+  # Assign TRUE to column [IsBridge]
+  mutate(IsBridge = TRUE) %>%
+  # Select columns that are necessary for Simio model
+  select(c('ï..road', 'chainage', 'LRPName', 'lat','lon', 'type', 'name', 'condition', 'length', 'IsBridge'))
 
-dfBridge <- read.csv('data/BMMS_overview.csv',
-  stringsAsFactors = FALSE ) %>% filter(road == 'N1') %>% select(-name)
+colnames(dfBridge) <- colnames(dfRoad) # align the column names
 
-# Remove unnecessary columns
-dfBridge <- dfBridge %>% select(c(
-    'LRPName','chainage','condition','lat','lon','length'
-))
-names(dfBridge) <- c('lrp','chainage','condition','lat','lon','length')
+## Merge roads and bridges
+dfMerger <- bind_rows(dfRoad, dfBridge) %>%
+  arrange(chainage)
 
-# There are some duplicate entries for bridges by condition.
-# Take a conservative approach and assume the worse condition.
+# Drop the duplicate rows by their lrp name
+dfMergerX <- dfMerger %>% group_by(lrp) %>% group_by(chainage) %>% 
+  # Keep the bridge which is in the best condition, or
+  # Keep the bridge and discard the road
+  top_n(-1, condition) %>% 
+  # If the duplicated bridges have identical category, check length and 
+  #    keep the shorter bridge
+  top_n(-1, length) %>%
+  # Ungroup the dataset
+  ungroup()
 
-dfBridge <- dfBridge %>% group_by(lrp) %>% top_n(1,condition)
-# There are still some duplicates left here.. and they're not all the same.
-# Let's naively sample one (FOR NOW)
-dfBridge <- dfBridge %>% sample_n(1) %>% ungroup()# Should end up with 639
-# dfBridge %>% top_n(1,condition) %>% filter(n() > 1)
+# Remove all the remaining duplicates having identical chainage & lrp
+dfMergerX <- dfMergerX %>% distinct(chainage, lrp, .keep_all = TRUE)
 
-# Remove duplicates and make a column for the destination node (lag by one)
-df <- full_join(dfRoad,dfBridge,by='lrp',suffix = c('.road','.bridge')) %>%
-    mutate(
-        chainage = ifelse(is.na(chainage.road),chainage.bridge,chainage.road),
-        lat = ifelse(is.na(lat.road),lat.bridge,lat.road),
-        lon = ifelse(is.na(lon.road),lon.bridge,lon.road),
-        length = ifelse(is.na(length),0,length)
-        ) %>%
-    #filter(-chainage)
-    arrange(chainage) %>%
-    mutate(destination = lead(lrp))
+# Double-check on which rows were dropped-off
+dfMergerDiff <- setdiff(dfMerger, dfMergerX)
 
-
-# Note there are coordinate differences
-filter(dfRoad, lrp == 'LRP008b')$lon
-filter(dfBridge, lrp == 'LRP008b')$lon
-
-write.csv(df, file = 'data/combinedRoadsBridges.csv')
-
-
-#### Other
-
-# # Is this part necessary?
-# df %>% mutate(
-#     latDiff = abs(lat.road - lat.bridge)/lat.road,
-#     lonDiff = abs(lon.road - lon.bridge)/lon.road,
-#     lat = ifelse(latDiff > 0.05, lat.road, lat.bridge) # Default to road data
-# )
+# Rename the deplicated lrp names (resulted from merger of bridge and road)
+dfMergerX$lrp <- ifelse(duplicated(dfMergerX$lrp), paste(dfMergerX$lrp, "1", sep = "_"), dfMergerX$lrp)
 
 
-# # Find all the data with any Bridge-type data
-# a <- filter(df1, stringr::str_detect(type,'Bridge'))
 
-# df1 <- df1 %>% mutate(
-#     ObjectType = case_when(
-#         stringr::str_detect(type,'Bridge') ~ 'TransferNode',
-#         TRUE ~ 'BasicNode' # For all other types
-#     )
-# )
+## Get the subset before chainage = 241.063 km (where Chittagong city area ends)
+dfMergerX <- dfMergerX %>% filter(chainage <= 241.063)
+
+## Assign the previous row as the [destination] (since trucks travel from Chittagong)
+dfMergerX <- dfMergerX %>% mutate(destination = lag(lrp))
+
+
+## Write to file
+write.csv(dfMergerX, file = 'data/MergedN1.csv')
 
