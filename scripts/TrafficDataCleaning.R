@@ -25,3 +25,33 @@ names(df) <- c("Road", "Description",
     "Large Bus", "Medium Bus", "Micro Bus", "Utility", "Car",
     "Auto Rickshaw", "Motor Cycle", "Bi-Cycle", "Cycle Rickshaw",
     "Cart", "Motorized", "Non Motorized", "Total AADT", "Segment", "Side")
+
+# PCE Values, with the first one given by the MoC
+# Others from Gaji, M. (2018) https://www.iccesd.com/proc_2018/Papers/r_p4854.pdf
+PCE_Car <- 1
+PCE_Pickup <- PCE_Car
+PCE_Bus <- mean(c(3, 3.29, 3.26, 3.17, 3.06))
+PCE_BusMini <- mean(c(3, 2.39, 2.28, 2.47, 2.32))
+PCE_Truck <- mean(c(3, 3.27, 3.21, 3.33, 3.41))
+PCE_TruckMed <- mean(c(3, 2.27, 2.11, 2.31, 2.19))
+PCE_CNG <- mean(c(3, 2.27, 2.11, 2.31, 2.19))
+PCE_Motorcycle <- mean(c(0.75, 0.59, 0.55, 0.61, 0.54))
+
+# Now calculate PCEs (note columns originally in string data type)
+df <- df %>% mutate(
+    PCE = (
+        as.numeric(`Heavy Truck`) * PCE_Truck +
+        as.numeric(`Medium Truck`) * PCE_TruckMed +
+        as.numeric(`Small Truck`) * PCE_Pickup +
+        as.numeric(`Large Bus`) * PCE_Bus +
+        as.numeric(`Medium Bus`) * PCE_BusMini +
+        as.numeric(`Micro Bus`) * PCE_BusMini +
+        as.numeric(Utility) * PCE_Pickup +
+        as.numeric(Car) * 1 +
+        as.numeric(`Auto Rickshaw`) * PCE_Motorcycle +
+        as.numeric(`Motor Cycle`) * PCE_Motorcycle +
+        as.numeric(`Bi-Cycle`) * PCE_Motorcycle +
+        as.numeric(`Cycle Rickshaw`) * PCE_Motorcycle +
+        as.numeric(`Cart`) * PCE_Motorcycle
+    )
+)
