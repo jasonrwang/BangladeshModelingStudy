@@ -10,10 +10,14 @@
 library(dplyr)
 library(tidyr)
 
+##-----------
+# Load Data
+##-----------
+
 ## Load road data
-dfRoad <- read.csv('data/_roads3.csv', stringsAsFactors = FALSE ) %>% 
+dfRoad <- read.csv("data/_roads3.csv", stringsAsFactors = FALSE ) %>% 
   # Select subeset road rows on N1
-  filter(road == 'N1') %>%
+  filter(road == "N1") %>%
   # Remove unnecessary columns
   select(-gap) %>%
   # Assign road to column [condition]
@@ -24,9 +28,9 @@ dfRoad <- read.csv('data/_roads3.csv', stringsAsFactors = FALSE ) %>%
   mutate(IsBridge = FALSE)
 
 ## Load bridge data
-dfBridge <- read.csv('data/BMMS_overview.csv', stringsAsFactors = FALSE ) %>% 
+dfBridge <- read.csv("data/BMMS_overview.csv", stringsAsFactors = FALSE ) %>% 
   # Select subset bridges rows on N1
-  filter(ï..road == 'N1') %>%
+  filter(road == "N1") %>%
   # Drop the bridges that contain NAs
   drop_na() %>%
   # Sort the bridge dataset by LRPName and then chainage
@@ -34,7 +38,7 @@ dfBridge <- read.csv('data/BMMS_overview.csv', stringsAsFactors = FALSE ) %>%
   # Assign TRUE to column [IsBridge]
   mutate(IsBridge = TRUE) %>%
   # Select columns that are necessary for Simio model
-  select(c('ï..road', 'chainage', 'LRPName', 'lat','lon', 'type', 'name', 'condition', 'length', 'IsBridge'))
+  select(c("road", "chainage", "LRPName", "lat","lon", "type", "name", "condition", "length", "IsBridge"))
 
 colnames(dfBridge) <- colnames(dfRoad) # align the column names
 
@@ -62,15 +66,11 @@ dfMergerDiff <- setdiff(dfMerger, dfMergerX)
 # Rename the deplicated lrp names (resulted from merger of bridge and road)
 dfMergerX$lrp <- ifelse(duplicated(dfMergerX$lrp), paste(dfMergerX$lrp, "1", sep = "_"), dfMergerX$lrp)
 
-
-
-## Get the subset before chainage = 241.063 km (where Chittagong city area ends)
+# Get the subset before chainage = 241.063 km (where Chittagong city area ends)
 dfMergerX <- dfMergerX %>% filter(chainage <= 241.063)
 
-## Assign the previous row as the [destination] (since trucks travel from Chittagong)
+# Assign the previous row as the [destination] (since trucks travel from Chittagong)
 dfMergerX <- dfMergerX %>% mutate(destination = lag(lrp))
 
-
 ## Write to file
-write.csv(dfMergerX, file = 'data/MergedN1.csv')
-
+write.csv(dfMergerX, file = "data/MergedN1.csv")
