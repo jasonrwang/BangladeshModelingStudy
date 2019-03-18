@@ -1,4 +1,6 @@
 library(rvest)
+library(dplyr)
+library(tidyr)
 
 # Load the HTML page
 trafficPage <- read_html("data/N1.traffic.htm", trim = TRUE)
@@ -55,3 +57,6 @@ df <- df %>% mutate(
         as.numeric(`Cart`) * PCE_Motorcycle
     )
 )
+
+## Write to file
+write.csv(df, file = "data/TrafficN1.csv")
