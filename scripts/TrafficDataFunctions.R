@@ -9,15 +9,15 @@ ScrapeTraffic <- function(file) {
     # Select the table that we actually want (the fifth <table> element)
     df <- html_table(html_nodes(trafficPage, "table")[[5]],
         header = FALSE, fill = TRUE)
-
+    
     # Initial cleaning
     df <- df %>% slice(-c(0,1,2,3)) %>% # Remove the unnecessary rows
         # Take the road name and separate it into a more readable version
         separate(X1, c("Road", "Road2"), sep = "-") %>%
         mutate(
-            Segment = strsplit(Road2, "[[:alpha:]]"),
+            Segment = unlist(strsplit(Road2, "[[:alpha:]]")[1]),
             Side = ifelse(grepl("[[:alpha:]]", Road2),
-                gsub("[[:digit:]]", "", Road2), "NA"),
+                gsub("[[:digit:]]", "", Road2), "NA")
         ) %>%
         select(-c(Road2, X26)) # Road2 is temporary, X26 is a duplicate (AADT)
 
@@ -56,19 +56,12 @@ ScrapeTraffic <- function(file) {
             as.numeric(`Bi-Cycle`) * PCE_Motorcycle +
             as.numeric(`Cycle Rickshaw`) * PCE_Motorcycle +
             as.numeric(`Cart`) * PCE_Motorcycle
-        ),
-        # Criticality loosely based on AECOM 2009 NZTA Review Figure 4
-        # https://www.nzta.govt.nz/assets/Highways-Information-Portal/Technical-disciplines/Resilience/Resources-and-information/NZTA-Criticality-Review-20160923-Rev-B.pdf
-        Criticality = ifelse(
-            PCE > 10000, 3,
-            ifelse(
-                PCE > 5000, 2,
-                ifelse(
-                    PCE > 2000, 1, 0
-                )
-            )
         )
     )
 
     return(df)
+}
+
+ScrapeNrLanes <- function(file) {
+  # 
 }
