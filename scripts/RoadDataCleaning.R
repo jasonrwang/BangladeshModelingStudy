@@ -38,12 +38,14 @@ library(xlsx)
 
 source('scripts/RoadDataFunctions.R')
 
+strroad <- c('N507')
+
 ## Load data
 df <- read.csv('data/Roads_InfoAboutEachLRP.csv',
   stringsAsFactors = FALSE ) %>% group_by(road)
 
 # Visually inspect roads
-VisualizeRoads(df, c('N6'), 'Initial Inspection')
+VisualizeRoads(df, strroad, 'Initial Inspection')
 
 
 # ==================================
@@ -57,10 +59,10 @@ cat("CLEANING RECORD STARTS\n\n\n", file = "CleaningRecord.txt", append = FALSE)
 
 # 1. Fix chainage reversal/duplicates problem 
 df <- ByChainage(df)
-VisualizeRoads(df, c('N6'),'After ByChainage')
+VisualizeRoads(df, strroad,'After ByChainage')
 
 # Changed outlier flagging logic to be by-type and not a general outlier category
-# VisualizeRoads(df, c('N2'), 'Outliers', outlier = TRUE)
+# VisualizeRoads(df, strroad, 'Outliers', outlier = TRUE)
 
 # =========================
 #  Data cleaning for Roads 
@@ -75,6 +77,9 @@ df$lat[which(df$road == "Z3711")[1]] <- df$lat[which(df$road == "Z3711")[1]] - 1
 # lon = lon - 1 needed : Z4606 & Z1129
 df$lon[which(df$road == "Z4606")[1]] <- df$lon[which(df$road == "Z4606")[1]] - 1
 df$lon[which(df$road == "Z1129")[1]] <- df$lon[which(df$road == "Z1129")[1]] - 1
+
+# Specific fix - duplicate lat for Z7606
+df$lat[which(df$road == "Z7606")[1]] <- df$lat[which(df$road == "Z7606")[2]]
 
 # Remove roads that do not exist : Z1030 & Z1081 & Z1401
 df <- df[-which(df$road == "Z1030"), ]
@@ -111,10 +116,10 @@ df4 <- RoadLargeDeltaClean(df3)
 df1 <- df1 %>% RoadCooksDis_LatLon() %>% CooksDistanceClean() # Now cleans by Cook's Distance without splitting by road
 
 # Plot a road to check the results
-VisualizeRoads(df4, c('N6'),'After Cleaning', TRUE)
+VisualizeRoads(df4, strroad,'After Cleaning', TRUE)
 
 df5 <- df4 %>% RoadDeltaLon(q) %>% RoadDeltaLat(q) %>% RoadLargeDeltaClean()
-VisualizeRoads(df5, c('N6'),'After Cleaning', TRUE)
+VisualizeRoads(df5, strroad,'After Cleaning', TRUE)
 
 # =====================
 #  Write data to file 
