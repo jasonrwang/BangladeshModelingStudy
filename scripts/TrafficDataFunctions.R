@@ -64,7 +64,7 @@ ScrapeTraffic <- function(file) {
             ifelse(
                 PCE > 5000, 2,
                 ifelse(
-                    PCE > 1000, 1, 0
+                    PCE > 2000, 1, 0
                 )
             )
         )
