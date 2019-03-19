@@ -71,7 +71,3 @@ ScrapeTraffic <- function(file) {
 
     return(df)
 }
-
-ScrapeNrLanes <- function(file) {
-  # 
-}
