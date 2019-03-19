@@ -2,6 +2,13 @@ library(rvest)
 library(dplyr)
 library(tidyr)
 
+importWidth <- function(file) {
+    df <- read.table(file,header = TRUE, sep = "\t")
+    names(df) <- c("Road", "roadID", "Chainage.start", "Chainage.end", "width", "nrLanes")
+    
+    return(df)
+}
+
 ScrapeTraffic <- function(file) {
     # Load the HTML page
     trafficPage <- read_html(file, trim = TRUE, options = c("NOERROR", "NOBLANKS"))
