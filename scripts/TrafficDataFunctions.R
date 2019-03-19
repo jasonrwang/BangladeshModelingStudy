@@ -15,7 +15,7 @@ ScrapeTraffic <- function(file) {
         # Take the road name and separate it into a more readable version
         separate(X1, c("Road", "Road2"), sep = "-") %>%
         mutate(
-            Segment = unlist(strsplit(Road2, "[[:alpha:]]")[1]),
+            Segment = unlist(strsplit(Road2, "[[:alpha:]]")),
             Side = ifelse(grepl("[[:alpha:]]", Road2),
                 gsub("[[:digit:]]", "", Road2), "NA")
         ) %>%
