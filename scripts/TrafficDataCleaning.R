@@ -1,5 +1,3 @@
-library(tidyr)
-
 source("scripts/TrafficDataFunctions.R")
 
 # Get the names of all the traffic webpage files in the "data" subfolder

@@ -1,6 +1,5 @@
-library(rvest)
-library(dplyr)
-library(tidyr)
+# We need rvest to scrape HTML files
+library(rvest) 
 
 importWidth <- function(file) {
     df <- read.table(file,header = TRUE, sep = "\t")
