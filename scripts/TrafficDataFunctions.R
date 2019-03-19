@@ -4,7 +4,7 @@ library(tidyr)
 
 ScrapeTraffic <- function(file) {
     # Load the HTML page
-    trafficPage <- read_html(file, trim = TRUE)
+    trafficPage <- read_html(file, trim = TRUE, options = c("NOERROR", "NOBLANKS"))
 
     # Select the table that we actually want (the fifth <table> element)
     df <- html_table(html_nodes(trafficPage, "table")[[5]],
