@@ -4,6 +4,7 @@ library(tidyr)
 
 ScrapeTraffic <- function(file) {
     # Load the HTML page
+    file = filenames[[1]]
     trafficPage <- read_html(file, trim = TRUE, options = c("NOERROR", "NOBLANKS"))
 
     # Select the table that we actually want (the fifth <table> element)
@@ -12,7 +13,10 @@ ScrapeTraffic <- function(file) {
     
     # Initial cleaning
     df <- df %>% slice(-c(0,1,2,3)) %>% # Remove the unnecessary rows
-        # Take the road name and separate it into a more readable version
+        # Take the road name and separate it into a more readable version (but keep it)
+        mutate(
+            RoadCode = X1
+        ) %>%
         separate(X1, c("Road", "Road2"), sep = "-") %>%
         mutate(
             Segment = unlist(strsplit(Road2, "[[:alpha:]]")),
@@ -27,7 +31,8 @@ ScrapeTraffic <- function(file) {
         "Length (km)", "Heavy Truck", "Medium Truck", "Small Truck",
         "Large Bus", "Medium Bus", "Micro Bus", "Utility", "Car",
         "Auto Rickshaw", "Motor Cycle", "Bi-Cycle", "Cycle Rickshaw",
-        "Cart", "Motorized", "Non Motorized", "Total AADT", "Segment", "Side")
+        "Cart", "Motorized", "Non Motorized", "Total AADT",
+        "Road Code", "Segment", "Side")
 
     # PCE Values, with the first one given by the MoC
     # Others from Gaji, M. (2018) https://www.iccesd.com/proc_2018/Papers/r_p4854.pdf
