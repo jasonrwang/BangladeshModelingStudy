@@ -18,6 +18,11 @@ dfWidth <- do.call(rbind,dfWidth)
 dfTraffic <- dfTraffic %>% group_by(Road)
 dfWidth <- dfWidth %>% group_by(Road)
 
+## Determine vulnerability by the number of bridges with concerns in it.
+# dfVulBridge_roadSection <- # For all road sections in the country
+# THe above might need to be ungrouped and then sorted
+# dfVulBridge_road <- # For each road
+
 ## Write to file
 write.csv(dfTraffic, file = "data/Traffic.csv")
 write.csv(dfWidth, file = "data/Width.csv")

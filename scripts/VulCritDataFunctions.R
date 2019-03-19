@@ -1,6 +1,19 @@
 # We need rvest to scrape HTML files
 library(rvest) 
 
+# 
+BridgeVul <- function(df) {
+    # Assumes input of df that is already grouped by road?
+    # For each bridge (from which df? a combined one or separate?),
+    # find the index of the road section that it belongs to
+    # needs to be fit within the boundaries set by the chainage!
+
+    df <- df %>% mutate(
+        Vulnerability = Vulnerability + 0 # Add whatever has been found
+    )
+}
+
+## Read in files with data about road width and the number of lanes
 importWidth <- function(file) {
     df <- read.table(file,header = TRUE, sep = "\t")
     names(df) <- c("Road", "roadID", "Chainage.start", "Chainage.end", "width", "nrLanes")
@@ -8,6 +21,7 @@ importWidth <- function(file) {
     return(df)
 }
 
+## Scrape Ministry HTML files with traffic counts for Bangladesh's roads
 ScrapeTraffic <- function(file) {
     # Load the HTML page
     trafficPage <- read_html(file, trim = TRUE, options = c("NOERROR", "NOBLANKS"))
