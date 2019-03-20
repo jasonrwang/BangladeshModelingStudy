@@ -29,8 +29,6 @@
 #   Load libraries and other scripts
 # ===================================
 
-library(dplyr)
-library(tidyr)
 library(ggplot2)
 library(plotly)
 library(geosphere)

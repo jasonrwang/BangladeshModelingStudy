@@ -1,24 +1,50 @@
+source("scripts/VulCritDataFunctions.R")
+
+# Get the names of all the traffic webpage files in the "data" subfolder
+trafficFileNames <- list.files("data/traffic", pattern = "*.traffic.htm", full.names = TRUE)
+widthFileNames <- list.files("data/traffic", pattern = "*.widths.processed.txt", full.names = TRUE)
+
+# Get the actual names of all the roads that have been imported
+roadnames <- gsub("data/traffic/", "", gsub(".traffic.htm", "", trafficFileNames))
+
+# Scrape all of the road files that are available into dfs
+df_traffic <- lapply(trafficFileNames, ScrapeTraffic) # This is still a little buggy with small roads
+df_nrLanes <- lapply(widthFileNames, importWidth)
+
+# Merge this list of dfs into one large df
+df_traffic <- do.call(rbind,df_traffic)
+df_nrLanes <- do.call(rbind,df_nrLanes)
+
+df_traffic <- df_traffic %>% group_by(Road)
+df_nrLanes <- df_nrLanes %>% group_by(Road)
+
+## Determine vulnerability by the number of bridges with concerns in it.
+# dfVulBridge_roadSection <- # For all road sections in the country
+# THe above might need to be ungrouped and then sorted
+# dfVulBridge_road <- # For each road
+
+# ## Write to file
+# write.csv(df_traffic, file = "data/Traffic.csv")
+# write.csv(df_nrLanes, file = "data/Width.csv")
+
+
+## ======================================
 ## Visualising Traffic per transport mode
+## ======================================
 
 # Load library
-library(dplyr)
 library(ggplot2)
 library(ggmap)
 library(plotly)
 library(leaflet)
 library(shiny)
 
-source("scripts/TrafficFlowsVisualisingFunction.R")
+# Load other useful data
+df <- read.csv("data/_roads3.csv", stringsAsFactors = FALSE)
+df_bridge <- readxl::read_excel("data/BMMS_overview.xlsx")
 
-## Load data
-df <- read.csv('data/_roads3.csv')
-df_nrLanes <- read.csv('data/Width.csv') %>% select(-X)
-df_traffic <- read.csv('data/Traffic.csv', stringsAsFactors = FALSE) %>% select(-X)
-df_bridge <- readxl::read_excel('data/BMMS_overview.xlsx')
-
-## Assign the bridge condition scores
-lbcond <- as.vector(c("A" = 1, "B" = 2, "C" = 3, "D" = 4))
-
+# Assign candidate road
+cRoad = c("N1")
 
 ## =============================
 ##  Data prep for visualisation 
@@ -80,8 +106,8 @@ df_trafficSum <- full_join(df_trafficSumLHS, df_trafficSumRHS, by = 'RoadSegment
 # Merge traffic with full road dataset
 df_all_t <- left_join(df_all, df_trafficSum, by = "RoadChainage")
 
-# Fill in NAs with latest non-NA row (startChainage of road link)
-df_all_t <- df_all_t %>% fill(colnames(df_trafficSum))
+## Calculate the weighted nrLanes
+df_rr$nrLanesW <- df_rr %>% apply(1, nrLanesW) # Does this line work?
 
 # Drop the roadRow where nrLanes = 0
 df_all_t <- df_all_t[-which(df_all_t$nrLanesW == 0), ]
@@ -89,36 +115,37 @@ df_all_t <- df_all_t[-which(df_all_t$nrLanesW == 0), ]
 
 ##  Calculate traffic density ## 
 
-## Traffic density = trafic flow volumne / nrLanes (weighted)
-df_all_t[colnameTraffic] <- df_all_t[colnameTraffic] / df_all_t$nrLanesW
+# Remove the ones that should have dtype as factor
+indx[
+    c('Road', 'Description', 'LRP.start', 'LRP.end', 'Road Code', 'Side')
+] <- FALSE
 
+# Fix the dtype to numeric
+df_rr_traffic[indx] <- lapply(
+    df_rr_traffic[indx], function(x) as.numeric(as.character(x))
+)
 
+## Sum the AADT of L/R components for link
+df_rr_trafficSum <- df_rr_traffic %>% select(-c(1:9, "Road.Code", "Side")) %>% 
+  group_by(Segment) %>% summarise_all(sum)
 
 ##  Calculate vulnerability (per road link) ##
 
-
+## Merge with road dataset
+df_rr <- df_rr %>% full_join(df_rr_trafficSum, 
+                              by = c("chainage" = "Chainage.start"))
 
 
 #df_Vul <- BridgeVul(df_all_t, df_bridge)
 #unique(df_Vul$Vulnerability)
 
 
-## ===============================================================
-##  Visualising N1 (or candidate road) Traffic per transport mode 
-## ===============================================================
+## =======================
+##  Merge bridges dataset   
+## =======================
 
-## Assign candidate road
-cRoad = c("N1")
-
-## Assign transport mode
-#
-# "Heavy.Truck"  "Medium.Truck"  "Small.Truck"
-# "Large.Bus"    "Medium.Bus"    "Micro.Bus"
-# "Utility"      "Car"           "Auto.Rickshaw"
-# "Motor.Cycle"  "Bi.Cycle"      "Cycle.Rickshaw"  "Cart"
-# "Motorized"    "Non.Motorized" "Total.AADT"      "PCE"
-tMode <- c('Cycle.Rickshaw')
-
+df_rr <- BridgeVul(df_rr, df_rr_bridge)
+unique(a$Vulnerability)
 
 ## Subset the data for candidate road ##
 df_rr <- df_all_t %>% filter(road == cRoad) 
