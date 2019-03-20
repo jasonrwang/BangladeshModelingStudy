@@ -131,7 +131,7 @@ palBridge <- colorFactor(c("grey", "yellow", "orange", "red"),
 # Create a palette that maps road traffic to continuour colors
 palRoad <- colorNumeric("GnBu", df_rr[tMode], na.color = NA)
 
-m <- leaflet() %>% addTiles(group = "General map") %>% 
+m <- leaflet() %>% addTiles(group = "Openstreet map") %>% 
   addProviderTiles(providers$CartoDB.Positron, group = "CartoDB (Default)") %>%
   # Overlay groups - road data
   addCircleMarkers(data = df_rr, ~lon, ~lat,
@@ -139,13 +139,13 @@ m <- leaflet() %>% addTiles(group = "General map") %>%
                    radius = 5,
                    weight = 1,
                    color = 'grey80',
-                   fillColor = ~palRoad(Cycle.Rickshaw), # NEED fix - to tMode
+                   fillColor = ~palRoad(df_rr[[tMode]]),
                    fillOpacity = 1,
                    group = "Road"
                    ) %>%
   addLegend("bottomright", 
             pal = palRoad, 
-            values = df_rr$Cycle.Rickshaw,   # NEED fix - to tMode
+            values = df_rr[[tMode]],
             group = "Road",
             title = "Traffic density") %>%
   
@@ -166,7 +166,7 @@ m <- leaflet() %>% addTiles(group = "General map") %>%
             group = c("A", "B", "C", "D"),
             title = "Bridge condition") %>%
   addLayersControl(
-    baseGroups = c("CartoDB (Default)", "General map"),
+    baseGroups = c("CartoDB (Default)", "Openstreet map"),
     overlayGroups = c("A", "B", "C", "D", "Road"),
     options = layersControlOptions(collapsed = FALSE),
     position = "topleft"
