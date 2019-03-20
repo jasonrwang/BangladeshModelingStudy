@@ -106,13 +106,13 @@ BridgeRating <- function(Code) {
   # Takes in a bridge condition code and returns a number
   # This is so-far arbitrary, but assigns a vulnerability score!
   if (Code == "A"){
-    return(0)
-  } else if (Code == "B") {
     return(1)
-  } else if (Code == "C") {
+  } else if (Code == "B") {
     return(2)
-  } else if (Code == "D") {
+  } else if (Code == "C") {
     return(3)
+  } else if (Code == "D") {
+    return(4)
   } else {
     return("NA")
   }
