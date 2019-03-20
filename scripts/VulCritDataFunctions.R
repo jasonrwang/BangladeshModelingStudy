@@ -1,18 +1,6 @@
 # We need rvest to scrape HTML files
 library(rvest) 
 
-# 
-BridgeVul <- function(df) {
-    # Assumes input of df that is already grouped by road?
-    # For each bridge (from which df? a combined one or separate?),
-    # find the index of the road section that it belongs to
-    # needs to be fit within the boundaries set by the chainage!
-
-    df <- df %>% mutate(
-        Vulnerability = Vulnerability + 0 # Add whatever has been found
-    )
-}
-
 ## Read in files with data about road width and the number of lanes
 importWidth <- function(file) {
     df <- read.table(file,header = TRUE, sep = "\t")
@@ -146,4 +134,41 @@ nrLanesW <- function(rrRow) {
   
   # Return weighted nrLanes
   return(rr_nrLanes)
+}
+
+## Calculate Vulnerability of road links based on the bridges in the link
+
+BridgeVul <- function(df, df_bridge) {
+  # Takes in a road df and a bridge df, and finds the vul of all bridges in each road link
+  # Best used with df_rr and df_rr_bridge
+  df <- df %>% mutate(Vulnerability = NA)
+  # Assumes input of df that is already grouped by road or is just for one road
+  for (link in 1:(nrow(df)-1)) {
+    df_bridge_subset = filter(df_bridge,
+      (chainage >= df[link,]$chainage) & (chainage < df[link+1,]$chainage) )$condition
+    
+    # Sometimes, there are no bridges
+    if (!(length(df_bridge_subset))){
+      df[link,]$Vulnerability = 0
+    } else {
+      df[link,]$Vulnerability = sum(sapply(df_bridge_subset, BridgeRating))
+    }
+  }
+  return(df)
+}
+
+BridgeRating <- function(Code) {
+  # Takes in a bridge condition code and returns a number
+  # This is so-far arbitrary, but assigns a vulnerability score!
+  if (Code == "A"){
+    return(0)
+  } else if (Code == "B") {
+    return(1)
+  } else if (Code == "C") {
+    return(2)
+  } else if (Code == "D") {
+    return(3)
+  } else {
+    return("NA")
+  }
 }
