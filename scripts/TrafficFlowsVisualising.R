@@ -4,6 +4,7 @@
 library(dplyr)
 library(ggplot2)
 library(ggmap)
+library(plotly)
 
 source("scripts/TrafficDataFunctions.R")
 
@@ -14,7 +15,7 @@ df_traffic <- read.csv('data/Traffic.csv') %>% select(-X)
 df_bridge <- readxl::read_excel('data/BMMS_overview.xlsx')
 
 # Assign candidate road
-cRoad = c("N1")
+cRoad = c("N2")
 
 # Assign transport mode
 tMode <- c('Heavy.Truck')
@@ -76,21 +77,29 @@ df_rr <- df_rr %>% fill(colnames(df_rr)[9:length(df_rr)]) %>% drop_na()
 df_rr[19:35] <- df_rr[19:35] / df_rr$nrLanesW
 
 
+## =======================
+##  Merge bridges dataset   
+## =======================
+
+
+
 ## ===============================================================
 ##  Visualising N1 (or candidate road) Traffic per transport mode 
 ## ===============================================================
 
 # Subset the dataset for assigned transport mode
-df_rrV <- df_rr %>% select(c('chainage', 'lat', 'lon', tMode))
+df_rrV <- df_rr %>% select(c('chainage', 'lat', 'lon', tMode)) %>% 
+  data.table::setnames(old = tMode, new = 'TrafficDensity')
 
-# Rename column name
-colnames(df_rrV)[4] <- 'Traffic.Density'
+# 
+df_rr_bridge$condition <- factor(df_rr_bridge$condition)
 
-## Plot the roads on map of Bangladesh
+## Plot the roads and bridges on map of Bangladesh
 get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5845, 
                        right = 92.8135,    top = 26.7182), 
-              zoom = 7, maptype = "terrain", color = c("color", "bw")) %>% ggmap() +
-  geom_point(data = df_rrV, aes(x = lon, y = lat, colour = Traffic.Density), stroke = 1) + 
-  scale_colour_gradient(low = 'grey', high = 'red') +
-  ggtitle(paste(tMode, '(AADT / nrLanes)'))
-
+              zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
+  geom_point(data = df_rrV, aes(x = lon, y = lat, colour = TrafficDensity)) +
+  scale_colour_gradient(name = tMode, guide = 'colorbar', low = 'pink', high = 'red') +
+  geom_point(data = df_rr_bridge, aes(x = lon, y = lat, shape = condition), size = 1.5) +
+  scale_shape_manual(name = 'Bridge category', guide = 'legend', values = c(0, 1, 2, 5)) +
+  ggtitle(paste('Traffic density (AADT / nrLanes)'))
