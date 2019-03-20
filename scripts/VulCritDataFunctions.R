@@ -13,7 +13,7 @@ importWidth <- function(file) {
 ScrapeTraffic <- function(file) {
     # Load the HTML page
     trafficPage <- read_html(file, trim = TRUE, options = c("NOERROR", "NOBLANKS"))
-
+    # trafficPage <- read_html("data/traffic/N203.traffic.htm",trim = TRUE, options = c("NOERROR", "NOBLANKS"))
     # Select the table that we actually want (the fifth <table> element)
     df <- html_table(html_nodes(trafficPage, "table")[[5]],
         header = FALSE, fill = TRUE)
@@ -31,6 +31,9 @@ ScrapeTraffic <- function(file) {
                 gsub("[[:digit:]]", "", Road2), "NA")
         ) %>%
         select(-c(Road2, X26)) # Road2 is temporary, X26 is a duplicate (AADT)
+    
+    # Some files are completely empty. Skip these!
+    if (!nrow(df)) return(NULL)
 
     names(df) <- c("Road", "Description",
         "LRP.start", "Offset.start", "Chainage.start",
