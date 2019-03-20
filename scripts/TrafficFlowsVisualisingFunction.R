@@ -6,11 +6,22 @@ library(tidyr)
 #  FUNCTIONS ON NODE <-> LINK LEVEL 
 # ==================================
 
+
+
 ## Calcualte weighted nrLanes for roadRow data
 
-nrLanesW <- function(rrRow) {
+
+
+CalnrLanesW <- function(rrRow) {
+  #print(rrRow[c("road", "chainage")])  # for debugging
   # Create an empty vector for storing target indice of nrLanes dataset
   id <- c()
+  
+  # Get the data subset for the corresponding road
+  cRoad <- as.character(rrRow[1])
+  
+  df_rr <- df %>% filter(road == cRoad)
+  df_rr_nrLanes <- df_nrLanes %>% filter(Road == cRoad)
   
   # Get row index for input road row data
   jj <- which(!is.na(match(df_rr$chainage, as.numeric(rrRow[2]))))
@@ -23,7 +34,7 @@ nrLanesW <- function(rrRow) {
   # Compare the chainage values with that of nrLanes dataset
   for (ii in 1:nrow(df_rr_nrLanes)) {
     # If looped to the last row
-    if (is.na(as.numeric(df_rr_nrLanes$Chainage.start[ii+1]))) {
+    if (is.na(as.numeric(df_rr_nrLanes$Chainage.start[ii+1])) || is.na(rr2)) {
       id <- c(id, ii)
       break
     }
@@ -106,9 +117,3 @@ BridgeRating <- function(Code) {
     return("NA")
   }
 }
-
-# =====================================
-#  FUNCTIONS ON LINK <-> NETWORK LEVEL 
-# =====================================
-
-
