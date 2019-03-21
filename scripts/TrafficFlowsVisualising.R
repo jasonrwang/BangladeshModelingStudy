@@ -93,12 +93,12 @@ df_all_t <- df_all_t[-which(df_all_t$nrLanesW == 0), ]
 df_all_t[colnameTraffic] <- df_all_t[colnameTraffic] / df_all_t$nrLanesW
 
 
-
 ##  Calculate vulnerability (per road link) ##
 # This is really bad code, but 
 roadnames <- unique(df_all$road)
 df_vul <- AllRoadBridgeVul(roadnames, df_all)
-df_all_t <- full_join(df_all_t, df_vul)
+df_all_v <- full_join(df_all_t, df_vul,
+  by = c("road", "chainage", "lrp", "lat", "lon", "gap", "type", "name"))
 
 ## ===============================================================
 ##  Visualising N1 (or candidate road) Traffic per transport mode 
@@ -212,33 +212,26 @@ get_stamenmap(bbox = c(left  = 89.4, bottom = 23.0,
 
 ## Vulnerability ##
 
-head(df_vulnerability) <- df_all_t %>% 
-  select(RoadSegment, Vulnerability) %>% 
+df_vulnerability <- df_all_v %>% 
+  select(road, RoadSegment, Vulnerability) %>% 
   arrange(desc(Vulnerability)) %>%
   distinct()
-
-df_all_v_top10 <- df_all_t %>% semi_join(df_vulnerability[1:10, ], by = "RoadSegment")
+  df_vulnerability[1:10,]
+df_all_v %>% filter( road == "Z8203")
+df_all_v_top10 <- df_all_v %>% semi_join(df_vulnerability[1:10, ], by = "RoadSegment")
 
 ## Plot all criticality (filtered)
-get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5845, 
+get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5545, 
                        right = 92.8135,    top = 26.7182), 
               zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = filter(df_all_t, PCE > 10000), aes(x = lon, y = lat, colour = PCE)) +
-  scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
-  ggtitle(paste('Vulnerability per road segment (> 10,000 ppl/yr)'))
+  geom_point(data = filter(df_all_v, PCE > 10000), aes(x = lon, y = lat, colour = Vulnerability)) +
+  scale_colour_gradient(name = "Vulnerability", guide = 'colorbar', low = 'pink', high = 'red') +
+  ggtitle(paste('Weighted vulnerability per road segment (> 10,000 ppl/yr)'))
 
 ## Plot top-10 criticality
-get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5845, 
+get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.45, 
                        right = 92.8135,    top = 26.7182), 
               zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = df_all_v_top10, aes(x = lon, y = lat, colour = PCE)) +
-  scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
+  geom_point(data = df_all_v_top10, aes(x = lon, y = lat, colour = Vulnerability)) +
+  scale_colour_gradient(name = "Vulnerability", guide = 'colorbar', low = 'pink', high = 'red') +
   ggtitle(paste('Top-10 most vulnerable road segments'))
-
-## Zoom-in plot
-get_stamenmap(bbox = c(left  = 89.4, bottom = 23.0, 
-                       right = 91.6,    top = 24.5), 
-              zoom = 8, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = df_all_v_top10, aes(x = lon, y = lat, colour = PCE)) +
-  scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
-  ggtitle(paste('Top-10 most vulnerable road segments (zoom-in)'))
