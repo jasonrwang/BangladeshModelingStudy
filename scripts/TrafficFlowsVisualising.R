@@ -190,7 +190,7 @@ m
 
 ## Criticality ##
 
-df_Criticality <- df_all_t %>% 
+df_Criticality <- df_all_vc %>% 
   select(RoadSegment, PCE) %>% 
   arrange(desc(PCE)) %>%
   distinct()
@@ -220,6 +220,17 @@ get_stamenmap(bbox = c(left  = 89.4, bottom = 23.0,
   geom_point(data = df_all_t_top10, aes(x = lon, y = lat, colour = PCE)) +
   scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
   ggtitle(paste('Top-10 most critical road segments (zoom-in)'))
+
+# Top-10 most critical : bar plot
+ggplot(data = top_n(df_Criticality, 10, PCE), aes(x = reorder(RoadSegment, -PCE), y = PCE)) +
+  geom_bar(stat="identity", width = 0.5) +
+  xlab("Road segment name") +
+  ylab("PCE-weighted traffic volume (ppl/day)") +
+  ggtitle("Criticality per road segment") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
 
 ## Vulnerability ##
 
@@ -253,3 +264,12 @@ get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5545,
   geom_point(data = filter(df_all_vc, PCE > 3000, Vul > 20), aes(x = lon, y = lat, colour = Vul)) +
   scale_colour_gradient(name = "Vulnerability", guide = 'colorbar', low = 'pink', high = 'red') +
   ggtitle(paste('Vulnerability per road segment \n(filtered traffic > 3000 ppl/day & vul score > 20)'))
+
+# Top-10 most critical : bar plot
+ggplot(data = top_n(df_vulnerability, 10, Vul), aes(x = reorder(RoadSegment, -Vul), y = Vul)) +
+  geom_bar(stat="identity", width = 0.5) +
+  xlab("Road segment name") +
+  ylab("Condition-weighted bridge counts (# bridge * score)") +
+  ggtitle("Vulnerability per road segment") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
