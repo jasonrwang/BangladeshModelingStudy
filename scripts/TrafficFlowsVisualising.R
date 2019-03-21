@@ -33,7 +33,12 @@ df_all <- df_all %>% fill(nrLanesW) # fill the NA-nrLanesW of last dtRow for eve
 # Create a RoadChainage column for road-node specification
 df_all <- df_all %>% mutate(RoadChainage = paste(as.character(road), 
                                                  as.character(chainage), 
-                                                 sep = "-"))
+                                                 sep = "-")
+                            )
+
+# Drop the roadRow where nrLanes = 0
+df_all <- df_all[-which(df_all$nrLanesW == 0), ]
+
 
 ## Merge traffic flow dataset ##
 
@@ -83,8 +88,6 @@ df_all_t <- left_join(df_all, df_trafficSum, by = "RoadChainage")
 # Fill in NAs with latest non-NA row (startChainage of road link)
 df_all_t <- df_all_t %>% fill(colnames(df_trafficSum))
 
-# Drop the roadRow where nrLanes = 0
-df_all_t <- df_all_t[-which(df_all_t$nrLanesW == 0), ]
 
 
 ##  Calculate traffic density ## 
@@ -94,12 +97,20 @@ df_all_t[colnameTraffic] <- df_all_t[colnameTraffic] / df_all_t$nrLanesW
 
 
 ##  Calculate vulnerability (per road link) ##
-# This is really bad code, but 
-roadnames <- unique(df_all$road)
-df_vul <- AllRoadBridgeVul(roadnames, df_all)
-df_all_v <- full_join(df_all_t, df_vul,
-  by = c("road", "chainage", "lrp", "lat", "lon", "gap", "type", "name", "nrLanesW"))
-names(df_all_v)
+
+# Prepare a list of RoadSegment
+df_all_v <- df_all_t %>% select(road, chainage, RoadSegment) %>%
+  group_by(RoadSegment) %>% top_n(1, chainage) %>% ungroup()
+
+# Get the vulnerability score
+df_all_v$Vul <- df_all_v %>% apply(1, CalVulnerbility)  
+
+# Merge dataset back to full road dataset
+df_all_vc <- left_join(df_all_t, select(df_all_v, Vul, RoadSegment), by = "RoadSegment")
+
+#unique(df_all_vc$Vul)  # for debugging
+
+
 ## ===============================================================
 ##  Visualising N1 (or candidate road) Traffic per transport mode 
 ## ===============================================================
@@ -212,34 +223,33 @@ get_stamenmap(bbox = c(left  = 89.4, bottom = 23.0,
 
 ## Vulnerability ##
 
-df_vulnerability <- df_all_v %>% 
-  select(road, RoadSegment, lat, lon, Vulnerability) %>% 
-  arrange(desc(Vulnerability)) %>%
+df_vulnerability <- df_all_vc %>%
+  select(RoadSegment, Vul) %>% 
+  arrange(desc(Vul)) %>%
   distinct()
 
-# df_vulnerability[1:10,] %>% select(-c(lat,lon))
+df_all_t_top10v <- df_all_vc %>% semi_join(df_vulnerability[1:10, ], by = "RoadSegment")
 
-## Plot all criticality (filtered)
+## Plot all vulnerability (filtered)
 get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5545, 
                        right = 92.8135,    top = 26.7182), 
               zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = df_all_v, aes(x = lon, y = lat, colour = Vulnerability)) +
+  geom_point(data = filter(df_all_vc, Vul > 20), aes(x = lon, y = lat, colour = Vul)) +
   scale_colour_gradient(name = "Vulnerability", guide = 'colorbar', low = 'pink', high = 'red') +
-  ggtitle(paste('Vulnerability per road segment'))
+  ggtitle(paste('Vulnerability per road segment (> 20 vul score)'))
 
-## Plot top-10 criticality
+## Plot top-10 vulnerability
 get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.45, 
                        right = 92.8135,    top = 26.7182), 
               zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = df_vulnerability[1:10,], aes(x = lon, y = lat, colour = Vulnerability)) +
+  geom_point(data = df_all_t_top10v, aes(x = lon, y = lat, colour = Vul)) +
   scale_colour_gradient(name = "Vulnerability", guide = 'colorbar', low = 'pink', high = 'red') +
   ggtitle(paste('Top-10 most vulnerable road segments'))
 
-# Filter first by criticality
-df_vulnerability_busy <- df_all_v %>% 
-  filter(PCE > 2000) %>%
-  select(road, RoadSegment, lat, lon, Vulnerability) %>% 
-  arrange(desc(Vulnerability)) %>%
-  distinct()
-
-df_vulnerability_busy[1:10,]
+# Filter first by criticality then plot vulnerability
+get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5545, 
+                       right = 92.8135,    top = 26.7182), 
+              zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
+  geom_point(data = filter(df_all_vc, PCE > 3000, Vul > 20), aes(x = lon, y = lat, colour = Vul)) +
+  scale_colour_gradient(name = "Vulnerability", guide = 'colorbar', low = 'pink', high = 'red') +
+  ggtitle(paste('Vulnerability per road segment \n(filtered traffic > 3000 ppl/day & vul score > 20)'))
