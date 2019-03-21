@@ -98,6 +98,7 @@ df_all_t[colnameTraffic] <- df_all_t[colnameTraffic] / df_all_t$nrLanesW
 # This is really bad code, but 
 roadnames <- unique(df_all$road)
 df_vul <- AllRoadBridgeVul(roadnames, df_all)
+df_all_t <- full_join(df_all_t, df_vul)
 
 ## ===============================================================
 ##  Visualising N1 (or candidate road) Traffic per transport mode 
@@ -211,7 +212,7 @@ get_stamenmap(bbox = c(left  = 89.4, bottom = 23.0,
 
 ## Vulnerability ##
 
-df_Criticality <- df_all_t %>% 
-  select(RoadSegment, PCE) %>% 
-  arrange(desc(PCE)) %>%
+head(df_vulnerability) <- df_all_t %>% 
+  select(RoadSegment, Vulnerability) %>% 
+  arrange(desc(Vulnerability)) %>%
   distinct()
