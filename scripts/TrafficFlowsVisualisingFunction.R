@@ -82,6 +82,23 @@ CalnrLanesW <- function(rrRow) {
 
 
 ## Calculate Vulnerability of road links based on the bridges in the link
+AllRoadBridgeVul <- function(roadnames, df) {
+  # This function is really just to iterate through all the available roads
+  # It was too difficult to do this via group_by for two data frames
+  c = data.frame()
+
+  for (roadN in roadnames) {
+    df_all_subset = df %>% filter(road == roadN)
+    df_bridge_subset = df_bridge %>% filter(road == roadN)
+    if (!dim(df_bridge_subset)[1]) {
+      next # Ignore empty bridges – leave NA
+    } 
+    b <- BridgeVul(df_all_subset, df_bridge_subset)
+    c <- bind_rows(c, b)
+  }
+  df <- full_join(df,c, by = c("road", "chainage"))
+  return(df)
+}
 
 BridgeVul <- function(df, df_bridge) {
   # Takes in a road df and a bridge df, and finds the vul of all bridges in each road link
@@ -89,16 +106,18 @@ BridgeVul <- function(df, df_bridge) {
   df <- df %>% mutate(Vulnerability = NA)
   # Assumes input of df that is already grouped by road or is just for one road
   for (link in 1:(nrow(df)-1)) {
+    if (!(length()))
     df_bridge_subset = filter(df_bridge,
-                              (chainage >= df[link,]$chainage) & (chainage < df[link+1,]$chainage) )$condition
+      (chainage >= df[link,]$chainage) & (chainage < df[link+1,]$chainage) )$condition
     
-    # Sometimes, there are no bridges
+    # Sometimes, there are no bridges in a segment
     if (!(length(df_bridge_subset))){
       df[link,]$Vulnerability = 0
     } else {
       df[link,]$Vulnerability = sum(sapply(df_bridge_subset, BridgeRating))
     }
   }
+  df <- df %>% select(road, chainage, Vulnerability)
   return(df)
 }
 

@@ -95,13 +95,9 @@ df_all_t[colnameTraffic] <- df_all_t[colnameTraffic] / df_all_t$nrLanesW
 
 
 ##  Calculate vulnerability (per road link) ##
-
-
-
-
-#df_Vul <- BridgeVul(df_all_t, df_bridge)
-#unique(df_Vul$Vulnerability)
-
+# This is really bad code, but 
+roadnames <- unique(df_all$road)
+df_vul <- AllRoadBridgeVul(roadnames, df_all)
 
 ## ===============================================================
 ##  Visualising N1 (or candidate road) Traffic per transport mode 
@@ -212,3 +208,10 @@ get_stamenmap(bbox = c(left  = 89.4, bottom = 23.0,
   geom_point(data = df_all_t_top10, aes(x = lon, y = lat, colour = PCE)) +
   scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
   ggtitle(paste('Top-10 most critical road segments (zoom-in)'))
+
+## Vulnerability ##
+
+df_Criticality <- df_all_t %>% 
+  select(RoadSegment, PCE) %>% 
+  arrange(desc(PCE)) %>%
+  distinct()
