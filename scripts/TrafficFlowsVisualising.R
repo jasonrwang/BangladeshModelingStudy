@@ -216,3 +216,29 @@ head(df_vulnerability) <- df_all_t %>%
   select(RoadSegment, Vulnerability) %>% 
   arrange(desc(Vulnerability)) %>%
   distinct()
+
+df_all_v_top10 <- df_all_t %>% semi_join(df_vulnerability[1:10, ], by = "RoadSegment")
+
+## Plot all criticality (filtered)
+get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5845, 
+                       right = 92.8135,    top = 26.7182), 
+              zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
+  geom_point(data = filter(df_all_t, PCE > 10000), aes(x = lon, y = lat, colour = PCE)) +
+  scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
+  ggtitle(paste('Vulnerability per road segment (> 10,000 ppl/yr)'))
+
+## Plot top-10 criticality
+get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5845, 
+                       right = 92.8135,    top = 26.7182), 
+              zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
+  geom_point(data = df_all_v_top10, aes(x = lon, y = lat, colour = PCE)) +
+  scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
+  ggtitle(paste('Top-10 most vulnerable road segments'))
+
+## Zoom-in plot
+get_stamenmap(bbox = c(left  = 89.4, bottom = 23.0, 
+                       right = 91.6,    top = 24.5), 
+              zoom = 8, maptype = "terrain", color = 'bw') %>% ggmap() +
+  geom_point(data = df_all_v_top10, aes(x = lon, y = lat, colour = PCE)) +
+  scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
+  ggtitle(paste('Top-10 most vulnerable road segments (zoom-in)'))
