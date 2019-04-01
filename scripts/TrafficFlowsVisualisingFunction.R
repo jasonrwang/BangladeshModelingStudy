@@ -2,15 +2,11 @@
 library(dplyr)
 library(tidyr)
 
-# ==================================
-#  FUNCTIONS ON NODE <-> LINK LEVEL 
-# ==================================
-
-
+# ===========
+#  FUNCTIONS 
+# ===========
 
 ## Calcualte weighted nrLanes for roadRow data
-
-
 
 CalnrLanesW <- function(rrRow) {
   #print(rrRow[c("road", "chainage")])  # for debugging
@@ -76,44 +72,76 @@ CalnrLanesW <- function(rrRow) {
     transmute(nrLanesW = (Chainage.end - Chainage.start) * nrLanes) %>%
     as.vector() %>% sum() %>% as.numeric() / (rr2 - rr1)
   
+  # When the link has no corresponding nrLanes due to gap between roads
+  # the weighted nrLanes goes negative
+  rr_nrLanes <- max(rr_nrLanes, 0)
+  
   # Return weighted nrLanes
+  #print(rr_nrLanes)  # for debugging
   return(rr_nrLanes)
 }
 
 
 ## Calculate Vulnerability of road links based on the bridges in the link
 
-BridgeVul <- function(df, df_bridge) {
-  # Takes in a road df and a bridge df, and finds the vul of all bridges in each road link
-  # Best used with df_rr and df_rr_bridge
-  df <- df %>% mutate(Vulnerability = NA)
-  # Assumes input of df that is already grouped by road or is just for one road
-  for (link in 1:(nrow(df)-1)) {
-    df_bridge_subset = filter(df_bridge,
-                              (chainage >= df[link,]$chainage) & (chainage < df[link+1,]$chainage) )$condition
+CalVulnerbility <- function(rrRow) {
+  #print(rrRow[c("road", "chainage")])  # for debugging
+  # Create empty vulnerability value sumVul = 0
+  sumVul <- 0
+  
+  # Get the data subset for the corresponding road / link
+  cRoad <- as.character(rrRow[1])
+  cRoadLink <- as.character(rrRow[3])
+  
+  df_rrLink <- df_all_t %>% 
+    filter(RoadSegment == cRoadLink) %>%
+    select(road, chainage, RoadSegment) %>%
+    arrange(chainage)
+  df_rr_bridge <- df_bridge %>% filter(road == cRoad)
+  
+  # Calculate the chainage values of first and last node
+  rr1 <- as.numeric(df_rrLink[1, 2])
+  rr2 <- as.numeric(df_rrLink[nrow(df_rrLink), 2])
+  #print(c(cRoadLink, "chainage", rr1, rr2))   # for debugging
+  
+  if (is.na(rr2)) {
+    # This is the endChainage of the road
+  } 
+  else if (nrow(df_rr_bridge) == 0) {
+    # There is no bridge in the road
+  } 
+  else {
+    # Compare the chainage values with that of bridge dataset
+    rr1ii <- which.max(df_rr_bridge$chainage >= rr1)
+    rr2ii <- which.min(df_rr_bridge$chainage <= rr2)
+    #print(c("ii = ", rr1ii, rr2ii, 
+    #        df_rr_bridge$chainage[rr1ii],
+    #        df_rr_bridge$chainage[rr2ii]))   # for debugging
     
-    # Sometimes, there are no bridges
-    if (!(length(df_bridge_subset))){
-      df[link,]$Vulnerability = 0
+    if (is.null(rr1ii) || is.null(rr2ii)) {
+      # No bridges found within the road segment
+      #print("GOES LOOP-1")  # for debugging
+    } else if (rr1ii == rr2ii) {
+      # No bridges found within the road segment
+      #print("GOES LOOP-2")  # for debugging
     } else {
-      df[link,]$Vulnerability = sum(sapply(df_bridge_subset, BridgeRating))
+      # Get the bridge condition values
+      #print("GOES LOOP-3")  # for debugging
+      inbridge <- df_rr_bridge$condition[rr1ii:(rr2ii - 1)]
+      
+      # Replace the bridge condition with assigned scores
+      inbridge[which(inbridge == "A")] <- 1
+      inbridge[which(inbridge == "B")] <- 2
+      inbridge[which(inbridge == "C")] <- 3
+      inbridge[which(inbridge == "D")] <- 4
+      
+      sumVul <- sum(as.numeric(inbridge))
+      
+      #print(c("inbridge: ", inbridge)) # for debugging
     }
   }
-  return(df)
-}
-
-BridgeRating <- function(Code) {
-  # Takes in a bridge condition code and returns a number
-  # This is so-far arbitrary, but assigns a vulnerability score!
-  if (Code == "A"){
-    return(0)
-  } else if (Code == "B") {
-    return(1)
-  } else if (Code == "C") {
-    return(2)
-  } else if (Code == "D") {
-    return(3)
-  } else {
-    return("NA")
-  }
+  
+  # Return bridge score
+  #print(c(cRoadLink, sumVul))  # for debugging
+  return(sumVul)
 }
