@@ -12,7 +12,8 @@ sapply(file.sources, source)
 # Prompt the user for which scenario they want to run??? (or in Simio)
 
 # Allow the user to pick a road they want to analyze (N1)
-road = "N1"
+road <- "N1"
+# nrNodes <- number of nodes in road
 
 # Let the user see all the bridges in the selected road
 
@@ -24,11 +25,21 @@ road = "N1"
 # Pass the broken bridges to MySQL
 
 ## Continuously
-for (...) {
-# When it knows that something has completed from Simio, refresh the visualization
-# e.g. read from a separate table where a value needs to go up
+SQL_length <- currentTime <- 0
+for (... in ...) {
+    # Only read/refresh when a new hour's information has been written
+    SQL_length_new = # query # Query MySQL for the dimensions of the table
 
-# Read Simio output (from MySQL)
+    if (SQL_length_new > SQL_length) {
+        # Ensure all information has been written
+        if (! SQL_length %% nrNodes ) {
+            # Read Simio output (from MySQL)
+            # Append only the latest data though!
+            # query for rows from currentTime
+            currentTime <- currentTime + 1 # Look at the next hour
+        }
+        SQL_length = SQL_length_new
+    }
 
 # Visualize that output
 }
