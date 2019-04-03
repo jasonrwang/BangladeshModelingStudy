@@ -1,7 +1,7 @@
 ## Visualising Traffic per transport mode
 
 # Set working directory
-setwd("D:/EPA/EPA Semester-1.3/EPA1351 Advanced Discrete Simulation/BangladeshModelingStudy")
+# setwd("D:/EPA/EPA Semester-1.3/EPA1351 Advanced Discrete Simulation/BangladeshModelingStudy")
 
 # Load library
 library(dplyr)
@@ -10,11 +10,14 @@ library(tidyr)
 # Load functions for calculating nrLanes
 source("scripts/TrafficFlowsVisualisingFunction.R")
 
+cRoad = "N1"
+
 ## Load data and filter by road N1
-df_road <- read.csv('data/_roads3.csv') %>% filter(road == "N1")
-df_nrLanes <- read.csv('data/Width.csv') %>% select(-X) %>% filter(Road == "N1")
-df_traffic <- read.csv('data/Traffic.csv', stringsAsFactors = FALSE) %>% select(-X) %>% filter(Road == "N1")
-df_bridge <- readxl::read_excel('data/BMMS_overview.xlsx') %>% filter(road == "N1")
+df_road <- read.csv('data/_roads3.csv', stringsAsFactors = FALSE) %>% filter(road == cRoad)
+df_nrLanes <- read.csv('data/Width.csv', stringsAsFactors = FALSE) %>% select(-X) %>% filter(Road == cRoad)
+df_traffic <- read.csv('data/Traffic.csv', stringsAsFactors = FALSE) %>% select(-X) %>% filter(Road == cRoad)
+df_bridge <- readxl::read_excel('data/BMMS_overview.xlsx') %>% filter(road == cRoad) %>%
+                  select(road, chainage, LRPName, lat, lon, name, condition)
 
 ## Merge traffic flow dataset ##
 
@@ -101,6 +104,16 @@ df <- df %>% fill(nrLanesW)
 
 # Get traffic density
 df[colnameTrafficComb] <- df[colnameTrafficComb] / df$nrLanesW
+
+## Add Bridges
+
+names(df_bridge) <- c("road", "chainage", "lrp", "lat", "lon", "name", "condition")
+a <- bind_rows(df, df_bridge) %>% arrange(lrp)
+
+a %>% group_by(lrp) %>% filter
+a[which(duplicated(a$chainage)),c("chainage","lrp","name","condition")]
+b <- df_bridge[which(duplicated(df_bridge$chainage)),c("chainage","lrp","name","condition")]
+head(b %>% group_by(chainage) %>% mutate(match = condition != lead(condition)),20)
 
 
 ## Add a column for destination
