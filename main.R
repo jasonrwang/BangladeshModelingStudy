@@ -65,8 +65,8 @@ while (SQL_length < finish_length) {
             currentID <- currentID + 1 # Next hour
 
             query <- paste("SELECT * FROM", db_table,
-                "WHERE DateTime >=", lastID, "AND",
-                "DateTime <", currentID)
+                "WHERE ID >=", lastID, "AND",
+                "ID <", currentID)
             df_new <- dbGetQuery(conn, query)
             df <- bind_rows(df, df_new)
         }
