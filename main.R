@@ -23,11 +23,11 @@ nrNodes <- # number of nodes in road
 ## Connect to MySQL Server
 # Parameteres
 db_name<- 'epagroup3'
-db_host<-'xxx.xxx.xxx.xxx'
+db_host<-'x.x.x.x'
 db_port<- 3306
 db_user<- 'epaselma' 
-db_password<-'xxx'
-db_table <- 'testreadwrite'
+db_password<-''
+db_table <- 'prototype'
 
 # Connect to the SQL database
 conn <- dbConnect(RMySQL::MySQL(),
@@ -38,15 +38,18 @@ conn <- dbConnect(RMySQL::MySQL(),
                  password=db_password)
 
 ## Bonus 1:
-# Prompt the user to 'break down' any of the roads (does this need to be in real-time or can it be at thte beginning?)
+# Prompt the user to 'break down' any of the roads (does this need to be in real-time or can it be at the beginning?)
 
 # Write road, bridge, and traffic data into main MySQL table
 
 # Pass the broken bridges to MySQL
 
 ## Continuously
-SQL_length <- currentTime <- 0
+SQL_length <- 0
+currentID <- startID <- 1
+timePeriods <- 1000 # 24
 finish_length <- nrNodes * timePeriods # The MySQL table should end up this long after the simulation
+df <- dbReadTable(conn, db_table) # Create an empty df with the correct headers
 
 while (SQL_length < finish_length) {
     # Only read/refresh when a new hour's information has been written
@@ -54,14 +57,18 @@ while (SQL_length < finish_length) {
 
     if (SQL_length_new > SQL_length) {
         # Ensure all information has been written
-        if (! SQL_length_new %% nrNodes ) {
+        if (! SQL_length_new+1 %% nrNodes ) {
             # Read Simio output (from MySQL)
             # Append only the latest data though!
-            # query for rows from currentTime
-            currentTime <- currentTime + 1 # Look at the next hour
+            # query for rows from lastID until currentID
+            lastID <- currentID
+            currentID <- currentID + 1 # Next hour
 
-            query <- paste("SELECT * FROM", db_table, "WHERE Integer1 =", integer)
+            query <- paste("SELECT * FROM", db_table,
+                "WHERE DateTime >=", lastID, "AND",
+                "DateTime <", currentID)
             df_new <- dbGetQuery(conn, query)
+            df <- bind_rows(df, df_new)
         }
         SQL_length = SQL_length_new
     }
