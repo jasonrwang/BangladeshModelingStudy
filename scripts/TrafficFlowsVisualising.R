@@ -1,4 +1,4 @@
-## Visualising Traffic per transport mode
+## Visualising Traffic per transport mode for Assignment 3
 
 # Load library
 library(ggplot2)
@@ -102,6 +102,7 @@ df_all_v <- df_all_t %>% select(road, chainage, RoadSegment) %>%
   group_by(RoadSegment) %>% top_n(1, chainage) %>% ungroup()
 
 # Get the vulnerability score
+# Something in this function is broken :|
 df_all_v$Vul <- df_all_v %>% apply(1, CalVulnerbility)  
 
 # Merge dataset back to full road dataset
@@ -126,149 +127,4 @@ cRoad = c("N1")
 # "Motorized"    "Non.Motorized" "Total.AADT"      "PCE"
 tMode <- c('Cycle.Rickshaw')
 
-
-## Subset the data for candidate road ##
-df_rr <- df_all_t %>% filter(road == cRoad) 
-df_rr_bridge <- df_bridge %>% filter(road == cRoad)
-
-
-# Create a palette that maps bridge condition factor levels to colors
-palBridge <- colorFactor(c("grey", "yellow", "orange", "red"), 
-                         domain = c("A", "B", "C", "D"))
-# Create a palette that maps road traffic to continuour colors
-palRoad <- colorNumeric("GnBu", df_rr[tMode], na.color = NA)
-
-m <- leaflet() %>% addTiles(group = "Openstreet map") %>% 
-  addProviderTiles(providers$CartoDB.Positron, group = "CartoDB (Default)") %>%
-  # Overlay groups - road data
-  addCircleMarkers(data = df_rr, ~lon, ~lat,
-                   label = ~as.character(lrp),
-                   radius = 5,
-                   weight = 1,
-                   color = 'grey80',
-                   fillColor = ~palRoad(df_rr[[tMode]]),
-                   fillOpacity = 1,
-                   group = "Road"
-                   ) %>%
-  addLegend("bottomright", 
-            pal = palRoad, 
-            values = df_rr[[tMode]],
-            group = "Road",
-            title = "Traffic density") %>%
-  
-  # Overlay groups - by bridge condition A/B/C/D
-  addCircleMarkers(data = df_rr_bridge, ~lon, ~lat, 
-                   label = ~as.character(condition), 
-                   popup = ~as.character(LRPName),
-                   radius = 4,
-                   weight = 1,
-                   color = 'black',
-                   fillColor = ~palBridge(condition), 
-                   fillOpacity = ~ifelse(condition == "A", 0.5, 0.9),
-                   group = ~as.character(condition)
-                   ) %>% 
-  addLegend("bottomright", 
-            pal = palBridge, 
-            values = df_rr_bridge$condition,
-            group = c("A", "B", "C", "D"),
-            title = "Bridge condition") %>%
-  addLayersControl(
-    baseGroups = c("CartoDB (Default)", "Openstreet map"),
-    overlayGroups = c("A", "B", "C", "D", "Road"),
-    options = layersControlOptions(collapsed = FALSE),
-    position = "topleft"
-  ) %>%
-  setView(lng = 90.3, lat = 24, zoom = 7)
-
-m
-
-
-## ===========================================
-##  Visualising criticality and vulnerability  
-## ===========================================
-
-## Criticality ##
-
-df_Criticality <- df_all_vc %>% 
-  select(RoadSegment, PCE) %>% 
-  arrange(desc(PCE)) %>%
-  distinct()
-
-df_all_t_top10 <- df_all_t %>% semi_join(df_Criticality[1:10, ], by = "RoadSegment")
-
-## Plot all criticality (filtered)
-get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5845, 
-                       right = 92.8135,    top = 26.7182), 
-              zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = filter(df_all_t, PCE > 10000), aes(x = lon, y = lat, colour = PCE)) +
-  scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
-  ggtitle(paste('Criticality per road segment (> 10,000 ppl/yr)'))
-
-## Plot top-10 criticality
-get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5845, 
-                       right = 92.8135,    top = 26.7182), 
-              zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = df_all_t_top10, aes(x = lon, y = lat, colour = PCE)) +
-  scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
-  ggtitle(paste('Top-10 most critical road segments'))
-
-## Zoom-in plot
-get_stamenmap(bbox = c(left  = 89.4, bottom = 23.0, 
-                       right = 91.6,    top = 24.5), 
-              zoom = 8, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = df_all_t_top10, aes(x = lon, y = lat, colour = PCE)) +
-  scale_colour_gradient(name = "Weighed traffic density (ppl/yr)", guide = 'colorbar', low = 'pink', high = 'red') +
-  ggtitle(paste('Top-10 most critical road segments (zoom-in)'))
-
-# Top-10 most critical : bar plot
-ggplot(data = top_n(df_Criticality, 10, PCE), aes(x = reorder(RoadSegment, -PCE), y = PCE)) +
-  geom_bar(stat="identity", width = 0.5) +
-  xlab("Road segment name") +
-  ylab("PCE-weighted traffic volume (ppl/day)") +
-  ggtitle("Criticality per road segment") +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5))
-
-
-
-## Vulnerability ##
-
-df_vulnerability <- df_all_vc %>%
-  select(RoadSegment, Vul) %>% 
-  arrange(desc(Vul)) %>%
-  distinct()
-
-df_all_t_top10v <- df_all_vc %>% semi_join(df_vulnerability[1:10, ], by = "RoadSegment")
-
-## Plot all vulnerability (filtered)
-get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5545, 
-                       right = 92.8135,    top = 26.7182), 
-              zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = filter(df_all_vc, Vul > 20), aes(x = lon, y = lat, colour = Vul)) +
-  scale_colour_gradient(name = "Vulnerability", guide = 'colorbar', low = 'pink', high = 'red') +
-  ggtitle(paste('Vulnerability per road segment (> 20 vul score)'))
-
-## Plot top-10 vulnerability
-get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.45, 
-                       right = 92.8135,    top = 26.7182), 
-              zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = df_all_t_top10v, aes(x = lon, y = lat, colour = Vul)) +
-  scale_colour_gradient(name = "Vulnerability", guide = 'colorbar', low = 'pink', high = 'red') +
-  ggtitle(paste('Top-10 most vulnerable road segments'))
-
-# Filter first by criticality then plot vulnerability
-get_stamenmap(bbox = c(left  = 87.8075, bottom = 20.5545, 
-                       right = 92.8135,    top = 26.7182), 
-              zoom = 7, maptype = "terrain", color = 'bw') %>% ggmap() +
-  geom_point(data = filter(df_all_vc, PCE > 3000, Vul > 20), aes(x = lon, y = lat, colour = Vul)) +
-  scale_colour_gradient(name = "Vulnerability", guide = 'colorbar', low = 'pink', high = 'red') +
-  ggtitle(paste('Vulnerability per road segment \n(filtered traffic > 3000 ppl/day & vul score > 20)'))
-
-# Top-10 most critical : bar plot
-ggplot(data = top_n(df_vulnerability, 10, Vul), aes(x = reorder(RoadSegment, -Vul), y = Vul)) +
-  geom_bar(stat="identity", width = 0.5) +
-  xlab("Road segment name") +
-  ylab("Condition-weighted bridge counts (# bridge * score)") +
-  ggtitle("Vulnerability per road segment") +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5))
+TrafficVis(cRoad, tMode, df_all_t, df_bridge)
