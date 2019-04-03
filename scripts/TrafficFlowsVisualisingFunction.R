@@ -1,12 +1,8 @@
-# Load library
-library(dplyr)
-library(tidyr)
-
 # ===========
 #  FUNCTIONS 
 # ===========
 
-## Calcualte weighted nrLanes for roadRow data
+## Calculate weighted nrLanes for roadRow data
 
 CalnrLanesW <- function(rrRow) {
   #print(rrRow[c("road", "chainage")])  # for debugging
