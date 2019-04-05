@@ -12,6 +12,8 @@ library(shiny)
 file.sources = list.files("scripts/*.R")
 sapply(file.sources, source)
 
+source("ShinyFunctions.R")
+
 ## For assignment 4
 # Prompt the user for which scenario they want to run??? (or in Simio)
 
@@ -63,109 +65,76 @@ brokenBridges <- c("A", "B")
 
 # Predeclare Shiny stuff
 ui <- fluidPage(
-        mainPanel(
-            leafletOutput(outputId = "N1map")
-        ),
-        absolutePanel(
-            top = 400, left = 20,
-            radioButtons("trafficType", h3("Traffic Type"),
-                    choices = list("PCE" = 1, "Truck" = 2,
-                                    "Bus" = 3, "Car" = 4,
-                                    "Motorbike" = 5,
-                                    "Bicycle" = 6),
-                                    selected = 1)
-        )
+    mainPanel(
+        leafletOutput(outputId = "N1map")
+    ),
+    absolutePanel(
+        top = 400, left = 20,
+        radioButtons("trafficType", h3("Traffic Type"),
+                choices = list("PCE" = 1, "Truck" = 2,
+                                "Bus" = 3, "Car" = 4,
+                                "Motorbike" = 5,
+                                "Bicycle" = 6),
+                                selected = 1)
+    )
 )
 
-## Continuously
-SimioOutput <- SQL_length <- 0
-currentID <- startID <- 1
-timePeriods <- 1000 # 24
-finish_length <- nrRows * timePeriods # The MySQL table should end up this long after the simulation
-dfSimio <- dbReadTable(conn, db_table) # Create an empty df with the correct headers
-dfDisplay <- 0
+read_ID <- 0
+server <- function(input, output, session) {
+    # Create a reactivePoll that updates when the data changes
+    # dfDisplay <- reactiveFileReader(1000, session, 'data/RealTimeVis.csv', GetLastHour)
+    dfDisplay <- GetLastHour('data/RealTimeVis.csv')
 
-while (SQL_length < finish_length) {
-    # Only read/refresh when a new hour's information has been written
-    SQL_length_new = dbGetQuery(conn, paste("SELECT COUNT(*) FROM", db_table )) # Query MySQL for the dimensions of the table
-    print(SQL_length_new)
-
-    if (SQL_length_new > SQL_length) {
-        # Ensure all information has been written
-        if (! SQL_length_new %% nrRows ) { 
-            # Read Simio output (from MySQL)
-            # Append only the latest data though!
-            # query for rows from lastID until currentID
-            lastID <- currentID
-            currentID <- currentID + 1 # Next hour
-
-            query <- paste("SELECT * FROM", db_table,
-                "WHERE ID >=", lastID, "AND",
-                "ID <", currentID)
-            SimioOutput <- dbGetQuery(conn, query)
-            SimioOutput <- SimioOutput %>%
-                mutate(PCE = TrafficTruck * PCE_Truck +
-                            TrafficBus * PCE_Bus +
-                            TrafficCar * PCE_Car +
-                            (TrafficMotorbike + TrafficBicycle) * PCE_Motorcycle,
-                    # Normalize to that time period:
-                    PCE = PCE/max(PCE),
-                    TrafficTruck = TrafficTruck/max(TrafficTruck),
-                    TrafficBus = TrafficBus/max(TrafficBus),
-                    TrafficCar = TrafficCar/max(TrafficCar),
-                    TrafficMotorbike = TrafficMotorbike/max(TrafficMotorbike),
-                    TrafficBicycle = TrafficBicycle/max(TrafficBicycle),
-                    ) %>% group_by(ID)
-            # Save outputs into one df for replay later
-            dfSimio <- bind_rows(dfSimio, SimioOutput)
-            SQL_length <- SQL_length_new
-
-            # If there are no outputs yet, move on! (0 should turn into a df)
-            if (length(SimioOutput) == 1) {
-                next
-            }
-
-            dfDisplay <- left_join(dfAll, SimioOutput, by = "LRP") %>%
-                            group_by(segment) %>%
-                            fill(c("ID", "Time", "TrafficTruck", "TrafficBus",
-                                    "TrafficCar", "TrafficMotorbike", "TrafficBicycle", "PCE"),
-                            .direction = "down")    
-
-            # Display bridges individually
-            ## Visualize Output
-            ## Declare Shiny stuff
-
-            server <- function(input, output, session) {
-                # Create a palette that maps bridge traffic levels to colors
-                palNorm <- colorNumeric(
-                        c("grey", "yellow", "orange", "red"), domain = c(0,1))
-
-                output$N1map <- renderLeaflet({
-                    leaflet() %>%
-                        setView(lng = 90.3, lat = 24, zoom = 7) %>%
-                        addProviderTiles(
-                            providers$CartoDB.Positron,
-                            options = providerTileOptions(noWrap = TRUE)
-                        ) %>%
-                    addCircleMarkers(
-                        data = dfDisplay, ~lon, ~lat, # Add roads
-                        label = ~as.character(LRP),
-                        radius = 5,
-                        weight = 1,
-                        color = 'grey80',
-                        fillColor = ~palNorm(PCE), # Make dynamic
-                        fillOpacity = 1,
-                        group = "Road"
-                    )
-                })
-            }
-            shinyApp(ui, server)
-            
-            Sys.sleep(0.5)
-        }
+    ## Wait until the file is ready:
+    # Wait if empty DB
+    while( dbGetQuery(conn, paste("SELECT COUNT(*) FROM", db_table )) == 0 ){
+        print("Empty DB")
+        next
     }
+     # Wait if still first hour
+    while (updateSQLtraffic(read_ID) == 0) {
+        print("First Hour")
+        next
+    }
+    
+    #function to read the DB and write to file if it's ready!
 
+    update_data <- function(read_ID) {
+      print("server read_ID")
+      print(read_ID)
+      read_ID <- updateSQLtraffic(read_ID)
+    }
+    # update_data(read_ID)
+
+    # Create a palette that maps bridge traffic levels to colors
+    palNorm <- colorNumeric(
+            c("grey", "yellow", "orange", "red"), domain = c(0,1))
+
+    # Display the data
+    output$N1map <- renderLeaflet({
+        leaflet() %>%
+            setView(lng = 90.4, lat = 24, zoom = 7) %>%
+            addProviderTiles(
+                providers$CartoDB.Positron,
+                options = providerTileOptions(noWrap = TRUE)
+            ) %>%
+        addCircleMarkers(
+            data = dfDisplay, ~lon, ~lat, # Add roads
+            label = ~as.character(LRP),
+            radius = 5,
+            weight = 1,
+            color = 'grey80',
+            fillColor = ~palNorm(PCE), # Make dynamic
+            fillOpacity = 1,
+            group = "Road"
+        )
+        invalidateLater(1000,session)
+        print(c("invalidated and update_data():"))
+        update_data(read_ID)
+    })
 }
+shinyApp(ui, server)
+
 
 # observe({
         #     proxy <- leafletProxy("mymap", data = data)

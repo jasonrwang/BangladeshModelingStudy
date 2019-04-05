@@ -8,7 +8,7 @@ db_host<-'localhost'
 db_port<- 3306
 db_user<- 'g3' 
 db_password<-'epaRocks4!'
-db_table <- 'lab4'
+db_table <- 'lab4test'
 
 # Connect to the SQL database
 conn <- dbConnect(RMySQL::MySQL(),
@@ -21,16 +21,14 @@ conn <- dbConnect(RMySQL::MySQL(),
 # Write sample results
 SimioHsinOutput <- read.csv('data/SimioOutput.csv', stringsAsFactors = FALSE)
 
-name <- 'lab4test'
-
 # Clear Table
-dbWriteTable(conn, name, data.frame(NULL), overwrite = TRUE)
+dbWriteTable(conn, db_table, data.frame(NULL), overwrite = TRUE)
 
 for (row in seq(1, dim(SimioHsinOutput)[1])) {
     if (row == 1){
-        dbWriteTable(conn, name, SimioHsinOutput[row,], overwrite = TRUE)
+        dbWriteTable(conn, db_table, SimioHsinOutput[row,], overwrite = TRUE)
     } else{
-        dbWriteTable(conn, name, SimioHsinOutput[row,], append = TRUE)
+        dbWriteTable(conn, db_table, SimioHsinOutput[row,], append = TRUE)
     }
-    Sys.sleep(0.1)
+    Sys.sleep(0.3)
 }
