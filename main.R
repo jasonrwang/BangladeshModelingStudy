@@ -16,18 +16,18 @@ sapply(file.sources, source)
 # Allow the user to pick a road they want to analyze (N1)
 road <- "N1"
 # Load the road files
-nrNodes <- # number of nodes in road
+nrRows <- # number of segments in road
 
 # Let the user see all the bridges in the selected road
 
 ## Connect to MySQL Server
 # Parameteres
-db_name<- 'epagroup3'
-db_host<-'x.x.x.x'
+db_name<- 'epa1351'
+db_host<-'localhost'
 db_port<- 3306
-db_user<- 'epaselma' 
-db_password<-''
-db_table <- 'prototype'
+db_user<- 'g3' 
+db_password<-'epaRocks4!'
+db_table <- 'lab4'
 
 # Connect to the SQL database
 conn <- dbConnect(RMySQL::MySQL(),
@@ -36,6 +36,11 @@ conn <- dbConnect(RMySQL::MySQL(),
                  port=db_port,
                  user=db_user,
                  password=db_password)
+
+# Use sample results
+output <- read.csv('data/SimioOutput.csv')
+name <- 'lab4test'
+dbWriteTable(conn, name, output,overwrite = TRUE)
 
 ## Bonus 1:
 # Prompt the user to 'break down' any of the roads (does this need to be in real-time or can it be at the beginning?)
@@ -57,7 +62,7 @@ while (SQL_length < finish_length) {
 
     if (SQL_length_new > SQL_length) {
         # Ensure all information has been written
-        if (! SQL_length_new+1 %% nrNodes ) {
+        if (! SQL_length_new+1 %% nrRows ) {
             # Read Simio output (from MySQL)
             # Append only the latest data though!
             # query for rows from lastID until currentID
