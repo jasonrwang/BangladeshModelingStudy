@@ -39,7 +39,7 @@ df_bridge <- df_bridge[-which(duplicated(df_bridge$chainage)), ]
 
 # To avoid duplicated lrp name after merger of road and bridge dataset
 # Add a suffix to bridge lrp name
-df_bridge$lrp <- paste(df_bridge$lrp, "_B")
+df_bridge$lrp <- paste(df_bridge$lrp, "_B", sep = "")
 
 ## Bind dataframes and sort by chainage
 df <- union(df_road, df_bridge) %>% arrange(chainage)
@@ -83,6 +83,8 @@ df_trafficSumRHS <- df_trafficSumRHS %>%
 # Motorbike <= "Auto.Rickshaw"  "Motor.Cycle"
 # Bicycle   <= "Bi.Cycle"       "Cycle.Rickshaw"
 
+colnameTrafficComb <- c("Truck", "Bus", "Car", "Motorbike", "Bicycle")
+
 df_trafficSumRHS <- df_trafficSumRHS %>% 
   transmute(Truck = Heavy.Truck + Medium.Truck + Small.Truck,
             Bus   = Large.Bus + Medium.Bus + Micro.Bus,
@@ -100,6 +102,10 @@ df_trafficSumRHS_Delta <- df_trafficSumRHS %>% transmute(Truck     = Truck - lag
                                                          RoadSegment = RoadSegment)
 # Pass the initial traffic volume
 df_trafficSumRHS_Delta[1, ] <- df_trafficSumRHS[1, ]
+
+# Assign a small value (0.001) to the rows with zero
+df_trafficSumRHS_Delta[which(df_trafficSumRHS_Delta[colnameTrafficComb] == 0), colnameTrafficComb] <- 0.001
+
 
 # Prepare the LHS-dataset (first chainage dtRow for each link) 
 df_trafficSumLHS <- df_traffic %>% 
@@ -140,13 +146,12 @@ df <- df %>% select(-Road, -LRP.start, -Road.Code, -RoadSegment, -RoadChainage)
 df <- df %>% fill(Segment)
 
 # Fill in zeros for the Traffic NAs
-colnameTrafficComb <- c("Truck", "Bus", "Car", "Motorbike", "Bicycle")
 df[which(is.na(df$Bus)), colnameTrafficComb] <- 0
 
 
-## ========================= ##
-## Calculate traffic density ##
-## ========================= ##
+## ===================== ##
+## Calculate nr of Lanes ##
+## ===================== ##
 
 ## Get the nrLanes
 df$nrLanes <- apply(df, 1, function (rrRow) {
@@ -156,8 +161,8 @@ df$nrLanes <- apply(df, 1, function (rrRow) {
 # Fill in for the last chainage node
 df <- df %>% fill(nrLanes)
 
-# Get traffic density
-df[colnameTrafficComb] <- df[colnameTrafficComb] / df$nrLanes
+# Get traffic density (obsoleted, using traffic volume in Simio instead)
+#df[colnameTrafficComb] <- df[colnameTrafficComb] / df$nrLanes
 
 
 ## Add a column for destination
