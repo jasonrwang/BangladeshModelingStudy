@@ -83,6 +83,7 @@ currentID <- startID <- 1
 timePeriods <- 1000 # 24
 finish_length <- nrRows * timePeriods # The MySQL table should end up this long after the simulation
 dfSimio <- dbReadTable(conn, db_table) # Create an empty df with the correct headers
+dfDisplay <- 0
 
 while (SQL_length < finish_length) {
     # Only read/refresh when a new hour's information has been written
@@ -118,49 +119,52 @@ while (SQL_length < finish_length) {
             # Save outputs into one df for replay later
             dfSimio <- bind_rows(dfSimio, SimioOutput)
             SQL_length <- SQL_length_new
+
+            # If there are no outputs yet, move on! (0 should turn into a df)
+            if (length(SimioOutput) == 1) {
+                next
+            }
+
+            dfDisplay <- left_join(dfAll, SimioOutput, by = "LRP") %>%
+                            group_by(segment) %>%
+                            fill(c("ID", "Time", "TrafficTruck", "TrafficBus",
+                                    "TrafficCar", "TrafficMotorbike", "TrafficBicycle", "PCE"),
+                            .direction = "down")    
+
+            # Display bridges individually
+            ## Visualize Output
+            ## Declare Shiny stuff
+
+            server <- function(input, output, session) {
+                # Create a palette that maps bridge traffic levels to colors
+                palNorm <- colorNumeric(
+                        c("grey", "yellow", "orange", "red"), domain = c(0,1))
+
+                output$N1map <- renderLeaflet({
+                    leaflet() %>%
+                        setView(lng = 90.3, lat = 24, zoom = 7) %>%
+                        addProviderTiles(
+                            providers$CartoDB.Positron,
+                            options = providerTileOptions(noWrap = TRUE)
+                        ) %>%
+                    addCircleMarkers(
+                        data = dfDisplay, ~lon, ~lat, # Add roads
+                        label = ~as.character(LRP),
+                        radius = 5,
+                        weight = 1,
+                        color = 'grey80',
+                        fillColor = ~palNorm(PCE), # Make dynamic
+                        fillOpacity = 1,
+                        group = "Road"
+                    )
+                })
+            }
+            shinyApp(ui, server)
+            
+            Sys.sleep(0.5)
         }
     }
 
-    # If there are no outputs yet, move on!
-    if (!SimioOutput) {
-        next
-    }
-
-    dfDisplay <- left_join(dfAll, SimioOutput, by = "LRP") %>%
-                    group_by(segment) %>%
-                     fill(c("ID", "Time", "TrafficTruck", "TrafficBus",
-                            "TrafficCar", "TrafficMotorbike", "TrafficBicycle", "PCE"),
-                    .direction = "down")    
-
-    # Display bridges individually
-    ## Visualize Output
-    ## Declare Shiny stuff
-
-    # server <- function(input, output, session) {
-    #     # Create a palette that maps bridge traffic levels to colors
-    #     palNorm <- colorNumeric(
-    #             c("grey", "yellow", "orange", "red"), domain = c(0,1))
-
-    #     output$N1map <- renderLeaflet({
-    #         leaflet() %>%
-    #             setView(lng = 90.3, lat = 24, zoom = 7) %>%
-    #             addProviderTiles(
-    #                 providers$CartoDB.Positron,
-    #                 options = providerTileOptions(noWrap = TRUE)
-    #             ) %>%
-    #         addCircleMarkers(
-    #             data = dfDisplay, ~lon, ~lat, # Add roads
-    #             label = ~as.character(LRP),
-    #             radius = 5,
-    #             weight = 1,
-    #             color = 'grey80',
-    #             fillColor = ~palNorm(PCE), # Make dynamic
-    #             fillOpacity = 1,
-    #             group = "Road"
-    #         )
-    #     })
-    # }
-    # shinyApp(ui, server)
 }
 
 # observe({

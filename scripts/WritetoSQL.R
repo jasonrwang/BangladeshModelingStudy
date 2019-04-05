@@ -32,5 +32,5 @@ for (row in seq(1, dim(SimioHsinOutput)[1])) {
     } else{
         dbWriteTable(conn, name, SimioHsinOutput[row,], append = TRUE)
     }
-    Sys.sleep(0.5)
+    Sys.sleep(0.1)
 }
