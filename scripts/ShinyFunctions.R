@@ -1,3 +1,13 @@
+# Load data we need for visualization
+PCE_Car <- 1
+PCE_Bus <- mean(c(3, 3.29, 3.26, 3.17, 3.06))
+PCE_Truck <- mean(c(3, 3.27, 3.21, 3.33, 3.41))
+PCE_Motorcycle <- mean(c(0.75, 0.59, 0.55, 0.61, 0.54))
+
+dfAll <- read.csv("data/N1-FullRoadTraffic.csv", stringsAsFactors = FALSE) %>% filter(!is.na(lrp)) %>%
+            select(lrp, lat, lon, condition, Segment) %>% group_by(Segment)
+names(dfAll) <- c("LRP", "lat", "lon", "condition", "segment")
+
 # Create temporary file to write outputs to
 clearOutputFile <- function() {
     outputfile = "LRP,lat,lon,condition,segment,ID,Time,TrafficTruck,TrafficBus,TrafficCar,TrafficMotorbike,TrafficBicycle,PCE\n"
