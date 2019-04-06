@@ -12,4 +12,4 @@ The project investigates the criticality and vulnerability of various roads and 
 
 For assignment 4, ensure Simio and and MySQL can talk to each other. Then, just adjust the MySQL parameters at the top of `main.R` and run all of it, except to note which of the two types of visualization (real-time or a replay) you'd like to run. Note that both are limited by the outputs of Simio into MySQL.
 
-![Replay Visualization GIF](https://gfycat.com/MeagerSlipperyGnat.gif)
+![Replay Visualization GIF](https://thumbs.gfycat.com/MeagerSlipperyGnat-size_restricted.gif)
