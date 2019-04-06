@@ -57,6 +57,7 @@ ui_live <- fluidPage(
         leafletOutput(outputId = "N1map")
     ),
     sidebarPanel(
+        textOutput("TimeNow"),
         radioButtons("selectedTraffic", h3("Traffic Type"),
                 choices = list("PCE" = "PCE", "Truck" = "TrafficTruck",
                                 "Bus" = "TrafficBus", "Car" = "TrafficCar",
@@ -81,7 +82,7 @@ server_live <- function(input, output, session) {
     # Create a palette that maps bridge traffic levels to colors
     palNorm <- colorNumeric(
             c("grey", "yellow", "orange", "red"), domain = c(0,1))
-
+    
     # Display the data
     output$N1map <- renderLeaflet({
         leaflet() %>%
@@ -94,18 +95,32 @@ server_live <- function(input, output, session) {
             pal = palNorm, 
             values = seq(0,1,0.1),
             group = "Road",
-            title = "Normalized Traffic Volume")
+            title = "Normalized Traffic Volume") %>%
+        addLegend("bottomright", 
+            pal = colorFactor(c("blue"), domain = "Broken"), 
+            values = "Broken",
+            group = "Bridge",
+            title = "Broken Bridge") %>%
+        addLayersControl(
+            baseGroups = c("CartoDB (Default)"),
+            overlayGroups = c("Bridge", "Road"),
+            options = layersControlOptions(collapsed = FALSE),
+            position = "bottomleft"
+        )
     })
-    
     
     observe({
         while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
             print("observe: Empty DB")
         }
-        leafletProxy("N1map", data = dfDisplay()) %>%
+        output$TimeNow <- renderText({
+            paste("Time (Hour) Since Beginning of Run:", max(dfDisplay()$Time))
+        })
+        leafletProxy("N1map") %>%
             clearShapes() %>%
             # Show the road nodes
             addCircleMarkers(
+                data = dfDisplay(), ~lon, ~lat,
                 label = ~as.character(LRP),
                 radius = 5,
                 weight = 1,
@@ -113,17 +128,18 @@ server_live <- function(input, output, session) {
                 fillColor = ~palNorm(eval(parse(text = input$selectedTraffic))),
                 fillOpacity = 1,
                 group = "Road"
-            )
-            # # Let the user see all the bridges in the selected road
-            # addCircleMarkers(
-            #     label = ~as.character(LRP),
-            #     radius = 5,
-            #     weight = 1,
-            #     color = 'grey0',
-            #     fillColor = ~palNorm(eval(parse(text = input$selectedTraffic))),
-            #     fillOpacity = 1,
-            #     group = "Road"
-            # )
+            ) %>%
+            # Let the user see all the bridges in the selected road
+            addCircleMarkers(
+                data = brokenBridges, ~lon, ~lat,
+                label = ~as.character(condition),
+                radius = 6,
+                weight = 1,
+                color = 'blue',
+                fillColor = 'blue',
+                fillOpacity = 0.1,
+                group = "Bridge"
+            )            
     })
 }
 
@@ -187,9 +203,7 @@ server_replay <- function(input, output, session) {
         print("SQL Data: Empty DB")
     }
 
-    # Create a reactivePoll that updates when the data changes
-    # newSQLdata returns the latest hour of data
-    # GetLatestHour extracts the latest *complete* hour of data once newSQL updates
+    # GetLatestHour extracts all the data from MySQL (improperly...)
     dfOut <- GetAllHours()
     endTime <- max(dfOut$Time)
     print(c("End Time:", endTime))
@@ -200,13 +214,11 @@ server_replay <- function(input, output, session) {
         print(TimeNow)
         
         output$TimeNow <- renderText({
-        paste("Time (Hour) Since Beginning of Run:", TimeNow)
+            paste("Time (Hour) Since Beginning of Run:", TimeNow)
         })
         return(df)
     }
     
-    
-
     # Create a palette that maps bridge traffic levels to colors
     palNorm <- colorNumeric(
             c("grey", "yellow", "orange", "red"), domain = c(0,1))
