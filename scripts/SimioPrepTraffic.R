@@ -180,4 +180,4 @@ df <- df %>% mutate(destination = lead(lrp))
 
 
 ## Write data to csv file
-write.csv(df, file = "data/N1-FullRoadTraffic.csv")
+write.csv(df, file = "data/N1-FullRoadTraffic.csv", row.names = FALSE)
