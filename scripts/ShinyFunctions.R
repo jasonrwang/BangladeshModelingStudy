@@ -8,12 +8,6 @@ dfAll <- read.csv("data/N1-FullRoadTraffic.csv", stringsAsFactors = FALSE) %>% f
             select(lrp, lat, lon, condition, Segment) %>% group_by(Segment)
 names(dfAll) <- c("LRP", "lat", "lon", "condition", "segment")
 
-# Create temporary file to write outputs to
-clearOutputFile <- function() {
-    outputfile = "LRP,lat,lon,condition,segment,ID,Time,TrafficTruck,TrafficBus,TrafficCar,TrafficMotorbike,TrafficBicycle,PCE\n"
-    cat(outputfile, file = 'data/RealTimeVis.csv', sep = ",")
-}
-
 newSQLdata <- function() {
     while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
         print("newSQLdata: Empty DB")
@@ -29,10 +23,9 @@ GetLatestHour <- function(filename) {
         print("newSQLdata: Empty DB")
         # return(0)
     }
-    # When the latest_ID changes read in the latest data and write it to a CSV
+    # When the latest_ID changes read in the latest data
     latest_ID <- dbGetQuery(conn, "SElECT ID FROM lab4test ORDER BY ID DESC LIMIT 1") # Find the latest hour written/this is a fast function
     read_ID <- latest_ID - 1
-    print(c("GetLatestHour read_ID:", read_ID))
 
     # Fetch the completed data from SQL
     query <- paste("SELECT * FROM", db_table,
@@ -59,9 +52,6 @@ GetLatestHour <- function(filename) {
                     fill(c("ID", "Time", "TrafficTruck", "TrafficBus",
                             "TrafficCar", "TrafficMotorbike", "TrafficBicycle", "PCE"),
                     .direction = "down")
-    # Save outputs into a csv to trigger reactive file reader and to save for replay later
-    write.table(dfDisplay, file = 'data/RealTimeVis.csv',  # append doesn't work with write.csv
-        sep = ",", append = TRUE, row.names = FALSE, col.names = FALSE)
     
     return(dfDisplay)
 }
