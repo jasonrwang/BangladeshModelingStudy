@@ -1,3 +1,5 @@
+### This file simulates Simio writing to MySQL
+
 library(RMySQL)
 library(DBI)
 
@@ -20,15 +22,16 @@ conn <- dbConnect(RMySQL::MySQL(),
 
 # Write sample results
 SimioHsinOutput <- read.csv('data/SimioOutput.csv', stringsAsFactors = FALSE)
+dbWriteTable(conn, db_table, SimioHsinOutput, overwrite = TRUE, row.names = FALSE)
 
 # Clear Table
 dbWriteTable(conn, db_table, data.frame(NULL), overwrite = TRUE)
 
 for (row in seq(1, dim(SimioHsinOutput)[1])) {
     if (row == 1){
-        dbWriteTable(conn, db_table, SimioHsinOutput[row,], overwrite = TRUE)
+        dbWriteTable(conn, db_table, SimioHsinOutput[row,], overwrite = TRUE, row.names = FALSE)
     } else{
-        dbWriteTable(conn, db_table, SimioHsinOutput[row,], append = TRUE)
+        dbWriteTable(conn, db_table, SimioHsinOutput[row,], append = TRUE, row.names = FALSE)
     }
-    Sys.sleep(0.3)
+    Sys.sleep(0.1)
 }
