@@ -1,4 +1,5 @@
-## Pseudo-code
+## Introduction
+# The one main file to rule them all
 
 # Load top-level necessary libraries
 library(dplyr)
@@ -41,11 +42,6 @@ conn <- dbConnect(RMySQL::MySQL(),
                  user=db_user,
                  password=db_password)
 
-# # Use sample results
-# SimioOutput <- read.csv('data/SimioOutput.csv', stringsAsFactors = FALSE)
-# name <- 'lab4test'
-# dbWriteTable(conn, name, SimioOutput,overwrite = TRUE)
-
 PCE_Car <- 1
 PCE_Bus <- mean(c(3, 3.29, 3.26, 3.17, 3.06))
 PCE_Truck <- mean(c(3, 3.27, 3.21, 3.33, 3.41))
@@ -64,6 +60,8 @@ brokenBridges <- c("A", "B")
 # Pass the broken bridges to MySQL
 
 # Predeclare Shiny stuff
+clearOutputFile()
+
 ui <- fluidPage(
     mainPanel(
         leafletOutput(outputId = "N1map")
@@ -79,32 +77,11 @@ ui <- fluidPage(
     )
 )
 
-read_ID <- 0
 server <- function(input, output, session) {
     # Create a reactivePoll that updates when the data changes
-    # dfDisplay <- reactiveFileReader(1000, session, 'data/RealTimeVis.csv', GetLastHour)
-    dfDisplay <- GetLastHour('data/RealTimeVis.csv')
-
-    ## Wait until the file is ready:
-    # Wait if empty DB
-    while( dbGetQuery(conn, paste("SELECT COUNT(*) FROM", db_table )) == 0 ){
-        print("Empty DB")
-        next
-    }
-     # Wait if still first hour
-    while (updateSQLtraffic(read_ID) == 0) {
-        print("First Hour")
-        next
-    }
-    
-    #function to read the DB and write to file if it's ready!
-
-    update_data <- function(read_ID) {
-      print("server read_ID")
-      print(read_ID)
-      read_ID <- updateSQLtraffic(read_ID)
-    }
-    # update_data(read_ID)
+    # newSQLdata returns the latest hour of data
+    # GetLatestHour extracts the latest *complete* hour of data once newSQL updates
+    dfDisplay <- reactivePoll(1000, session, newSQLdata, GetLatestHour)
 
     # Create a palette that maps bridge traffic levels to colors
     palNorm <- colorNumeric(
@@ -113,71 +90,21 @@ server <- function(input, output, session) {
     # Display the data
     output$N1map <- renderLeaflet({
         leaflet() %>%
-            setView(lng = 90.4, lat = 24, zoom = 7) %>%
+            setView(lng = 89.5, lat = 23.1, zoom = 6) %>%
             addProviderTiles(
                 providers$CartoDB.Positron,
                 options = providerTileOptions(noWrap = TRUE)
             ) %>%
         addCircleMarkers(
-            data = dfDisplay, ~lon, ~lat, # Add roads
+            data = dfDisplay(), ~lon, ~lat, # Add roads
             label = ~as.character(LRP),
             radius = 5,
             weight = 1,
             color = 'grey80',
-            fillColor = ~palNorm(PCE), # Make dynamic
+            fillColor = ~palNorm(PCE), # Make dynamic input$trafficType
             fillOpacity = 1,
             group = "Road"
         )
-        invalidateLater(1000,session)
-        print(c("invalidated and update_data():"))
-        update_data(read_ID)
     })
 }
 shinyApp(ui, server)
-
-
-# observe({
-        #     proxy <- leafletProxy("mymap", data = data)
-        #     proxy %>% clearMarkers()
-        #     if (input$markers) {
-        #         proxy %>% addCircleMarkers(stroke = FALSE, color = ~pal2(depth_type), fillOpacity = 0.2,
-        #                                 label = ~as.character(paste0("Magnitude: ", sep = " ", mag))) %>%
-        #         addLegend("bottomright", pal = pal2, values = data$depth_type,
-        #                     title = "Depth Type",
-        #                     opacity = 1)}
-        #     else {
-        #         proxy %>% clearMarkers() %>% clearControls()
-        #     }
-        # })
-
-    # Overlay groups - road data
-        # addLegend("bottomright", 
-        #             pal = palRoad, 
-        #             values = df_rr[[tMode]],
-        #             group = "Road",
-        #             title = "Traffic density") #%>%
-
-        # Overlay groups - by bridge condition A/B/C/D
-        # addCircleMarkers(data = df_rr_bridge, ~lon, ~lat, 
-        #                 label = ~as.character(condition), 
-        #                 popup = ~as.character(LRPName),
-        #                 radius = 4,
-        #                 weight = 1,
-        #                 color = 'black',
-        #                 fillColor = ~palBridge(condition), 
-        #                 fillOpacity = ~ifelse(condition == "A", 0.5, 0.9),
-        #                 group = ~as.character(condition)
-        #                 ) %>% 
-        # addLegend("bottomright", 
-        #             pal = palBridge, 
-        #             values = df_rr_bridge$condition,
-        #             group = c("A", "B", "C", "D"),
-        #             title = "Bridge condition") %>%
-        # addLayersControl(
-        #     baseGroups = c("CartoDB (Default)", "Openstreet map"),
-        #     overlayGroups = c("A", "B", "C", "D", "Road"),
-        #     options = layersControlOptions(collapsed = FALSE),
-        #     position = "topleft"
-        # )
-
-## Bonus 2: Allow a replay where user can change the speed
