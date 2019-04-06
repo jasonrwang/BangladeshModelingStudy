@@ -53,3 +53,56 @@ GetLatestHour <- function(filename) {
         
         return(dfDisplay)
 }
+
+ui <- fluidPage(
+    mainPanel(
+        leafletOutput(outputId = "N1map")
+    ),
+    sidebarPanel(
+        radioButtons("selectedTraffic", h3("Traffic Type"),
+                choices = list("PCE" = "PCE", "Truck" = "TrafficTruck",
+                                "Bus" = "TrafficBus", "Car" = "TrafficCar",
+                                "Motorbike" = "TrafficMotorbike",
+                                "Bicycle" = "TrafficBicycle"),
+                                selected = "PCE")
+    ),
+    fluidRow(
+        top = 500, left = 40,
+        textOutput("trafficType")
+    )
+)
+
+server <- function(input, output, session) {
+    # Create a reactivePoll that updates when the data changes
+    # newSQLdata returns the latest hour of data
+    # GetLatestHour extracts the latest *complete* hour of data once newSQL updates
+    dfDisplay <- reactivePoll(1000, session, newSQLdata, GetLatestHour)
+
+    # Create a palette that maps bridge traffic levels to colors
+    palNorm <- colorNumeric(
+            c("grey", "yellow", "orange", "red"), domain = c(0,1))
+
+    output$trafficType <- renderText({
+        paste(input$selectedTraffic)
+    })
+
+    # Display the data
+    output$N1map <- renderLeaflet({
+        leaflet() %>%
+            setView(lng = 89.5, lat = 23.1, zoom = 6) %>%
+            addProviderTiles(
+                providers$CartoDB.Positron,
+                options = providerTileOptions(noWrap = TRUE)
+            ) %>%
+        addCircleMarkers(
+            data = dfDisplay(), ~lon, ~lat, # Add roads
+            label = ~as.character(LRP),
+            radius = 5,
+            weight = 1,
+            color = 'grey80',
+            fillColor = ~palNorm(input$selectedTraffic),
+            fillOpacity = 1,
+            group = "Road"
+        )
+    })
+}
