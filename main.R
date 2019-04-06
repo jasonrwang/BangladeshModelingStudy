@@ -42,15 +42,17 @@ source("scripts/ShinyFunctions.R")
 
 ## Bonus 1:
 # Prompt the user to 'break down' any of the roads (does this need to be in real-time or can it be at the beginning?)
-# brokenBridges <- c("A", "B")
+# brokenBridges <- c("A", "B") # The types of bridges broken down
 
 # Write road, bridge, and traffic data into main MySQL table
+source("scripts/SimioPrepTraffic.R")
 
 # Pass the broken bridges to MySQL
 
-# Run Shiny visualization
-clearOutputFile()
+## Run Shiny visualization
 
-shinyApp(ui, server)
+shinyApp(ui_live, server_live)
 
 ## Bonus 2: Allow a replay where user can change the speed
+
+shinyApp(ui_replay, server_replay)
