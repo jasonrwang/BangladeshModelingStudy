@@ -30,7 +30,7 @@ conn <- dbConnect(RMySQL::MySQL(),
 # file.sources = list.files("scripts/*.R")
 # sapply(file.sources, source)
 
-source("ShinyFunctions.R")
+source("data/ShinyFunctions.R")
 
 ## For assignment 4
 # Prompt the user for which scenario they want to run??? (or in Simio)

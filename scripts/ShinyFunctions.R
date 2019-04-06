@@ -1,6 +1,6 @@
 # Create temporary file to write outputs to
 clearOutputFile <- function() {
-    outputfile = "LRP,lat,lon,condition,segment,row_names,ID,Time,TrafficTruck,TrafficBus,TrafficCar,TrafficMotorbike,TrafficBicycle,PCE\n"
+    outputfile = "LRP,lat,lon,condition,segment,ID,Time,TrafficTruck,TrafficBus,TrafficCar,TrafficMotorbike,TrafficBicycle,PCE\n"
     cat(outputfile, file = 'data/RealTimeVis.csv', sep = ",")
 }
 
@@ -46,7 +46,7 @@ GetLatestHour <- function(filename) {
             )
         dfDisplay <- left_join(dfAll, SimioOutput, by = "LRP") %>%
                         group_by(segment) %>%
-                        fill(c("row_names","ID", "Time", "TrafficTruck", "TrafficBus",
+                        fill(c("ID", "Time", "TrafficTruck", "TrafficBus",
                                 "TrafficCar", "TrafficMotorbike", "TrafficBicycle", "PCE"),
                         .direction = "down")
         # Save outputs into a csv to trigger reactive file reader and to save for replay later
@@ -67,10 +67,6 @@ ui <- fluidPage(
                                 "Motorbike" = "TrafficMotorbike",
                                 "Bicycle" = "TrafficBicycle"),
                                 selected = "PCE")
-    ),
-    fluidRow(
-        top = 500, left = 40,
-        textOutput("trafficType")
     )
 )
 
@@ -89,10 +85,6 @@ server <- function(input, output, session) {
     # Create a palette that maps bridge traffic levels to colors
     palNorm <- colorNumeric(
             c("grey", "yellow", "orange", "red"), domain = c(0,1))
-
-    output$trafficType <- renderText({
-        paste(input$selectedTraffic)
-    })
 
     # Display the data
     output$N1map <- renderLeaflet({
@@ -119,7 +111,7 @@ server <- function(input, output, session) {
                 label = ~as.character(LRP),
                 radius = 5,
                 weight = 1,
-                color = 'grey80',
+                color = 'grey0',
                 fillColor = ~palNorm(eval(parse(text = input$selectedTraffic))),
                 fillOpacity = 1,
                 group = "Road"
