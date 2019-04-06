@@ -17,7 +17,6 @@ newSQLdata <- function() {
 GetLatestHour <- function(filename) {
     while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
         print("newSQLdata: Empty DB")
-        # return(0)
     }
     # When the latest_ID changes read in the latest data
     latest_ID <- dbGetQuery(conn, "SElECT ID FROM lab4test ORDER BY ID DESC LIMIT 1") # Find the latest hour written/this is a fast function
@@ -77,7 +76,6 @@ server_live <- function(input, output, session) {
     # newSQLdata returns the latest hour of data
     # GetLatestHour extracts the latest *complete* hour of data once newSQL updates
     dfDisplay <- reactivePoll(1000, session, newSQLdata, GetLatestHour)
-    # dfBridge <- reactivePoll(1000, session, newSQLdata, GetLatestHourBridge)
 
     # Create a palette that maps bridge traffic levels to colors
     palNorm <- colorNumeric(
