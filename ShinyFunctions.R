@@ -120,7 +120,7 @@ server <- function(input, output, session) {
                 radius = 5,
                 weight = 1,
                 color = 'grey80',
-                fillColor = ~palNorm(PCE),
+                fillColor = ~palNorm(eval(parse(text = input$selectedTraffic))),
                 fillOpacity = 1,
                 group = "Road"
             )
