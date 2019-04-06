@@ -37,15 +37,14 @@ source("scripts/ShinyFunctions.R")
 
 # # Allow the user to pick a road they want to analyze (N1)
 # road <- "N1"
-# # Load the road files
-# nrRows <- 69 # number of segments in road
 
 ## Bonus 1:
 # Prompt the user to 'break down' any of the roads (does this need to be in real-time or can it be at the beginning?)
+
 brokenBridgeTypes <- c("C","D") # The types of bridges broken down
 
 # Write road, bridge, and traffic data into main MySQL table
-source("scripts/SimioPrepTraffic.R")
+# source("scripts/SimioPrepTraffic.R")
 
 # Pass the broken bridges to MySQL
 
@@ -58,5 +57,4 @@ brokenBridges <- brokenBridges %>% filter((condition != "road") & (condition %in
 shinyApp(ui_live, server_live) # Doesn't work for the last hour
 
 ## Bonus 2: Allow a replay where user can change the speed
-
 shinyApp(ui_replay, server_replay)
