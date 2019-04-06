@@ -1,6 +1,4 @@
 # Load library
-library(dplyr)
-library(tidyr)
 library(ggplot2)
 library(plotly)
 library(xlsx)

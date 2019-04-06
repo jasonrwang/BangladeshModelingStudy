@@ -1,6 +1,4 @@
 library(rvest)
-library(dplyr)
-library(tidyr)
 
 importWidth <- function(file) {
     df <- read.table(file,header = TRUE, sep = "\t")

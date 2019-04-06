@@ -6,10 +6,6 @@
 ##   road / chainage / lrp / lat / lon / name //
 ##   condition / type / length / IsBridge / destination
 
-## Load library
-library(dplyr)
-library(tidyr)
-
 ##-----------
 # Load Data
 ##-----------
