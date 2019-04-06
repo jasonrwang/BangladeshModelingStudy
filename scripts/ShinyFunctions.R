@@ -192,7 +192,7 @@ ui_replay <- fluidPage(
                                 "Bicycle" = "TrafficBicycle"),
                                 selected = "PCE"),
         sliderInput("replayspeed", h4("Replay Speed (Seconds per Hour)"),
-            min = 0, max = 10, value = 3)
+            min = 0, max = 5, value = 3, step = 0.25)
     )
 )
 
@@ -206,13 +206,10 @@ server_replay <- function(input, output, session) {
     # GetLatestHour extracts all the data from MySQL (improperly...)
     dfOut <- GetAllHours()
     endTime <- max(dfOut$Time)
-    print(c("End Time:", endTime))
 
     TimeNow <- 0
     update_data <- function() {
-        df <- dfOut %>% filter(Time == TimeNow)
-        print(TimeNow)
-        
+        df <- dfOut %>% filter(Time == TimeNow)        
         output$TimeNow <- renderText({
             paste("Time (Hour) Since Beginning of Run:", TimeNow)
         })
@@ -235,7 +232,18 @@ server_replay <- function(input, output, session) {
             pal = palNorm, 
             values = seq(0,1,0.1),
             group = "Road",
-            title = "Normalized Traffic Volume")
+            title = "Normalized Traffic Volume") %>%
+        addLegend("bottomright", 
+            pal = colorFactor(c("blue"), domain = "Broken"), 
+            values = "Broken",
+            group = "Bridge",
+            title = "Broken Bridge") %>%
+        addLayersControl(
+            baseGroups = c("CartoDB (Default)"),
+            overlayGroups = c("Bridge", "Road"),
+            options = layersControlOptions(collapsed = FALSE),
+            position = "bottomleft"
+        )
     })
     
     observe({
@@ -249,10 +257,11 @@ server_replay <- function(input, output, session) {
         } else {
             return()
         }
-        leafletProxy("N1map", data = update_data()) %>%
+        leafletProxy("N1map") %>%
             clearShapes() %>%
             # Show the road nodes
             addCircleMarkers(
+                data = update_data(), ~lon, ~lat,
                 label = ~as.character(LRP),
                 radius = 5,
                 weight = 1,
@@ -260,16 +269,17 @@ server_replay <- function(input, output, session) {
                 fillColor = ~palNorm(eval(parse(text = input$selectedTraffic))),
                 fillOpacity = 1,
                 group = "Road"
-            )
-            # # Let the user see all the bridges in the selected road
-            # addCircleMarkers(
-            #     label = ~as.character(LRP),
-            #     radius = 5,
-            #     weight = 1,
-            #     color = 'grey0',
-            #     fillColor = ~palNorm(eval(parse(text = input$selectedTraffic))),
-            #     fillOpacity = 1,
-            #     group = "Road"
-            # )
+            ) %>%
+            # Let the user see all the bridges in the selected road
+            addCircleMarkers(
+                data = brokenBridges, ~lon, ~lat,
+                label = ~as.character(condition),
+                radius = 6,
+                weight = 1,
+                color = 'blue',
+                fillColor = 'blue',
+                fillOpacity = 0.1,
+                group = "Bridge"
+            )            
     })
 }
