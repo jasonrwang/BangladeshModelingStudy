@@ -5,8 +5,7 @@ clearOutputFile <- function() {
 }
 
 newSQLdata <- function() {
-    # Wait until the file is ready
-    if (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
+    while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
         print("newSQLdata: Empty DB")
         return(0)
     }
@@ -14,9 +13,12 @@ newSQLdata <- function() {
     latest_ID <- dbGetQuery(conn, "SElECT ID FROM lab4test ORDER BY ID DESC LIMIT 1") # Find the latest hour written/this is a fast function
     return(latest_ID)
 }
-newSQLdata()
 
 GetLatestHour <- function(filename) {
+    while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
+        print("newSQLdata: Empty DB")
+        # return(0)
+    }
     # When the latest_ID changes read in the latest data and write it to a CSV
     latest_ID <- dbGetQuery(conn, "SElECT ID FROM lab4test ORDER BY ID DESC LIMIT 1") # Find the latest hour written/this is a fast function
     read_ID <- latest_ID - 1
@@ -73,6 +75,12 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
+    # Wait until the file is ready
+    while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
+        print("newSQLdata: Empty DB")
+        # return(0)
+    }
+
     # Create a reactivePoll that updates when the data changes
     # newSQLdata returns the latest hour of data
     # GetLatestHour extracts the latest *complete* hour of data once newSQL updates
@@ -89,20 +97,32 @@ server <- function(input, output, session) {
     # Display the data
     output$N1map <- renderLeaflet({
         leaflet() %>%
-            setView(lng = 89.5, lat = 23.1, zoom = 6) %>%
-            addProviderTiles(
-                providers$CartoDB.Positron,
-                options = providerTileOptions(noWrap = TRUE)
-            ) %>%
-        addCircleMarkers(
-            data = dfDisplay(), ~lon, ~lat, # Add roads
-            label = ~as.character(LRP),
-            radius = 5,
-            weight = 1,
-            color = 'grey80',
-            fillColor = ~palNorm(input$selectedTraffic),
-            fillOpacity = 1,
-            group = "Road"
-        )
+        setView(lng = 91.5, lat = 22.1, zoom = 7) %>%
+        addProviderTiles(
+            providers$CartoDB.Positron,
+            options = providerTileOptions(noWrap = TRUE)
+        ) %>%
+        addLegend("bottomright", 
+            pal = palNorm, 
+            values = seq(0,1,0.1),
+            group = "Road",
+            title = "Normalized Traffic Volume")
+    })
+    
+    observe({
+        while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
+            print("observe: Empty DB")
+        }
+        leafletProxy("N1map", data = dfDisplay()) %>%
+            clearShapes() %>%
+            addCircleMarkers(
+                label = ~as.character(LRP),
+                radius = 5,
+                weight = 1,
+                color = 'grey80',
+                fillColor = ~palNorm(PCE),
+                fillOpacity = 1,
+                group = "Road"
+            )
     })
 }

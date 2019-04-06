@@ -4,8 +4,8 @@
 ## Load top-level necessary libraries
 library(dplyr)
 library(tidyr)
-library(RMySQL)
 library(DBI)
+library(RMySQL)
 library(leaflet)
 library(shiny)
 
