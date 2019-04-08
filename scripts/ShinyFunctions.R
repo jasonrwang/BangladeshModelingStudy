@@ -5,23 +5,24 @@ PCE_Truck <- mean(c(3, 3.27, 3.21, 3.33, 3.41))
 PCE_Motorcycle <- mean(c(0.75, 0.59, 0.55, 0.61, 0.54))
 
 dfAll <- read.csv('data/N1-FullRoadTraffic.csv', stringsAsFactors = FALSE)
-
+dfAll <- dfAll %>% select(lrp, lat, lon, condition, Segment)
+names(dfAll) <- c("LRP", "lat", "lon", "condition", "segment")
 newSQLdata <- function() {
-    while (dbGetQuery(conn, "SElECT COUNT(*) FROM test2") == 0) {
+    while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
         print("newSQLdata: Empty DB")
         return(0)
     }
     # Used in a reactivePoll –> needs to return a new value to signal it to change!
-    latest_ID <- dbGetQuery(conn, "SElECT ID FROM test2 ORDER BY ID DESC LIMIT 1") # Find the latest hour written/this is a fast function
+    latest_ID <- dbGetQuery(conn, "SElECT ID FROM lab4test ORDER BY ID DESC LIMIT 1") # Find the latest hour written/this is a fast function
     return(latest_ID)
 }
 
 GetLatestHour <- function(filename) {
-    while (dbGetQuery(conn, "SElECT COUNT(*) FROM test2") == 0) {
+    while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
         print("newSQLdata: Empty DB")
     }
     # When the latest_ID changes read in the latest data
-    latest_ID <- dbGetQuery(conn, "SElECT ID FROM test2 ORDER BY ID DESC LIMIT 1") # Find the latest hour written/this is a fast function
+    latest_ID <- dbGetQuery(conn, "SElECT ID FROM lab4test ORDER BY ID DESC LIMIT 1") # Find the latest hour written/this is a fast function
     read_ID <- latest_ID - 1
 
     # Fetch the completed data from SQL
@@ -70,7 +71,7 @@ ui_live <- fluidPage(
 
 server_live <- function(input, output, session) {
     # Wait until the file is ready
-    while (dbGetQuery(conn, "SElECT COUNT(*) FROM test2") == 0) {
+    while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
         print("newSQLdata: Empty DB")
     }
 
@@ -110,7 +111,7 @@ server_live <- function(input, output, session) {
     })
     
     observe({
-        while (dbGetQuery(conn, "SElECT COUNT(*) FROM test2") == 0) {
+        while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
             print("observe: Empty DB")
         }
         output$TimeNow <- renderText({
@@ -144,7 +145,7 @@ server_live <- function(input, output, session) {
 }
 
 GetAllHours <- function() {
-    while (dbGetQuery(conn, "SElECT COUNT(*) FROM test2") == 0) {
+    while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
         print("newSQLdata: Empty DB")
         # return(0)
     }
@@ -199,7 +200,7 @@ ui_replay <- fluidPage(
 
 server_replay <- function(input, output, session) {
     # Wait until the file is ready
-    while (dbGetQuery(conn, "SElECT COUNT(*) FROM test2") == 0) {
+    while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
         print("SQL Data: Empty DB")
     }
 
@@ -247,7 +248,7 @@ server_replay <- function(input, output, session) {
     })
     
     observe({
-        while (dbGetQuery(conn, "SElECT COUNT(*) FROM test2") == 0) {
+        while (dbGetQuery(conn, "SElECT COUNT(*) FROM lab4test") == 0) {
             print("observe: Empty DB")
         }
         

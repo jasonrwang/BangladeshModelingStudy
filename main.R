@@ -11,12 +11,12 @@ library(shiny)
 
 ## Connect to MySQL Server
 # Parameters
-db_name<- 'epa1351group3'
+db_name<- 'epa1351'
 db_host<-'localhost'
 db_port<- 3306
-db_user<- 'epa1351user' 
-db_password<-'password'
-db_table <- 'test2'
+db_user<- 'g3' 
+db_password<-'epaRocks4!'
+db_table <- 'lab4test'
 
 # Connect to the SQL database
 conn <- dbConnect(RMySQL::MySQL(),
